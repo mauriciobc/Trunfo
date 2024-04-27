@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request # type: ignore
 from game import Game
 
 app = Flask(__name__)

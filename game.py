@@ -1,4 +1,5 @@
 from random import shuffle
+from card_data import CARDS
 
 class Game:
   def __init__(self, deck_name, num_players):
@@ -13,6 +14,7 @@ class Game:
     for player in self.players:
       player.extend(card_data[:5])  # Deal 5 cards to each player
       del card_data[:5]  # Remove dealt cards from deck
+      
 
   def play_round(self, player_index, category):
     self.current_category = category
