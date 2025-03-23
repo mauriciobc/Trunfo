@@ -4,24 +4,24 @@
 **Branch: `feature/core-game-logic`**
 
 ### Project Structure
-- [ ] Initialize project with basic file structure
-- [ ] Set up version control (Git)
-- [ ] Create initial HTML file
-- [ ] Set up basic CSS file
-- [ ] Create main JavaScript file
+- [x] Initialize project with basic file structure
+- [x] Set up version control (Git)
+- [x] Create initial HTML file
+- [x] Set up basic CSS file
+- [x] Create main JavaScript file
 
 ### Core Game Logic
-- [ ] Define card data structure
-- [ ] Implement deck creation functionality
-- [ ] Create deck shuffling algorithm (Fisher-Yates)
-- [ ] Implement card dealing mechanism
-- [ ] Create basic game state management
-- [ ] Implement round logic:
-  - [ ] Category selection
-  - [ ] Card comparison
-  - [ ] Winner determination
-  - [ ] Draw handling
-  - [ ] Card pile updates
+- [x] Define card data structure
+- [x] Implement deck creation functionality
+- [x] Create deck shuffling algorithm (Fisher-Yates)
+- [x] Implement card dealing mechanism
+- [x] Create basic game state management
+- [x] Implement round logic:
+  - [x] Category selection
+  - [x] Card comparison
+  - [x] Winner determination
+  - [x] Draw handling
+  - [x] Card pile updates
 
 ## Milestone 2: User Interface and Basic AI 🎮
 **Branch: `feature/ui-and-ai`**
@@ -80,10 +80,10 @@
 **Branch: `feature/documentation`**
 
 ### Documentation
-- [ ] Write setup instructions
-- [ ] Create game rules documentation
-- [ ] Add code comments
-- [ ] Update README.md
+- [x] Write setup instructions
+- [x] Create game rules documentation
+- [x] Add code comments
+- [x] Update README.md
 
 ### Deployment
 - [ ] Prepare for production
