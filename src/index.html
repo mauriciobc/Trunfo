@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRUNFO - Card Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <header class="game-header">
+            <h1>TRUNFO</h1>
+            <div class="score-container">
+                <div class="player-score">Player Cards: <span id="player-cards">0</span></div>
+                <div class="computer-score">Computer Cards: <span id="computer-cards">0</span></div>
+            </div>
+        </header>
+
+        <main class="game-board">
+            <section class="player-area">
+                <h2>Your Card</h2>
+                <div id="player-card" class="card">
+                    <!-- Card content will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <section class="computer-area">
+                <h2>Computer's Card</h2>
+                <div id="computer-card" class="card card-back">
+                    <!-- Card content will be dynamically inserted here -->
+                </div>
+            </section>
+        </main>
+
+        <div id="game-message" class="game-message"></div>
+
+        <div class="game-controls">
+            <button id="start-game" class="btn">Start Game</button>
+            <button id="restart-game" class="btn" style="display: none;">Play Again</button>
+        </div>
+    </div>
+
+    <script src="js/game.js"></script>
+</body>
+</html>
