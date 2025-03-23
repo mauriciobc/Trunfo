@@ -3,9 +3,13 @@
     --primary-color: #2c3e50;
     --secondary-color: #3498db;
     --accent-color: #e74c3c;
+    --success-color: #2ecc71;
     --text-color: #333;
     --background-color: #ecf0f1;
     --card-background: #fff;
+    --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition-speed: 0.3s;
+    --modal-background: rgba(0, 0, 0, 0.5);
 }
 
 * {
@@ -19,6 +23,9 @@ body {
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Game container */
@@ -26,18 +33,27 @@ body {
     max-width: 1200px;
     margin: 2rem auto;
     padding: 1rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Header styles */
 .game-header {
     text-align: center;
     margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--primary-color);
+    border-radius: 10px;
+    color: white;
+    box-shadow: var(--card-shadow);
 }
 
 .game-header h1 {
     font-size: 2.5rem;
-    color: var(--primary-color);
     margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
 }
 
 .score-container {
@@ -47,12 +63,34 @@ body {
     font-size: 1.2rem;
 }
 
+.player-score, .computer-score {
+    padding: 0.5rem 1rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.player-score i, .computer-score i {
+    font-size: 1.2rem;
+}
+
 /* Game board */
 .game-board {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 2rem;
     margin-bottom: 2rem;
+    flex-grow: 1;
+}
+
+.player-area h2, .computer-area h2 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 /* Card styles */
@@ -60,15 +98,92 @@ body {
     background: var(--card-background);
     border-radius: 10px;
     padding: 1.5rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    min-height: 300px;
+    box-shadow: var(--card-shadow);
+    min-height: 400px;
     position: relative;
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.card h3 {
+    font-size: 1.8rem;
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--secondary-color);
 }
 
 .card-back {
     background-color: var(--secondary-color);
-    background-image: linear-gradient(45deg, var(--secondary-color) 25%, var(--primary-color) 25%, var(--primary-color) 50%, var(--secondary-color) 50%, var(--secondary-color) 75%, var(--primary-color) 75%, var(--primary-color) 100%);
+    background-image: linear-gradient(45deg, 
+        var(--secondary-color) 25%, 
+        var(--primary-color) 25%, 
+        var(--primary-color) 50%, 
+        var(--secondary-color) 50%, 
+        var(--secondary-color) 75%, 
+        var(--primary-color) 75%, 
+        var(--primary-color) 100%);
     background-size: 56.57px 56.57px;
+    animation: cardFlip 0.5s ease-out;
+}
+
+/* Attribute list */
+.attribute-list {
+    list-style: none;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.attribute-button {
+    width: 100%;
+    text-align: left;
+    padding: 1rem;
+    background: none;
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    transition: all var(--transition-speed) ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.attribute-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+    transform: scale(1.02);
+}
+
+.attribute-button.selected {
+    background-color: var(--secondary-color);
+    color: white;
+    border-color: var(--secondary-color);
+}
+
+.attribute-button.winner {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+}
+
+.attribute-button.loser {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
 }
 
 /* Game message */
@@ -77,58 +192,190 @@ body {
     font-size: 1.2rem;
     margin: 1rem 0;
     min-height: 2rem;
+    padding: 1rem;
+    border-radius: 8px;
+    transition: all var(--transition-speed) ease;
+}
+
+.game-message.success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.game-message.error {
+    background-color: var(--accent-color);
+    color: white;
 }
 
 /* Buttons */
+.game-controls {
+    text-align: center;
+    margin-top: 1rem;
+}
+
 .btn {
     background-color: var(--secondary-color);
     color: white;
     border: none;
-    padding: 0.8rem 1.5rem;
-    border-radius: 5px;
+    padding: 1rem 2rem;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all var(--transition-speed) ease;
+    margin: 0 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .btn:hover {
     background-color: var(--primary-color);
+    transform: translateY(-2px);
 }
 
-.game-controls {
-    text-align: center;
+.btn:active {
+    transform: translateY(0);
 }
 
-/* Card attributes */
-.attribute-list {
-    list-style: none;
+.btn i {
+    font-size: 1.2rem;
 }
 
-.attribute-button {
-    width: 100%;
-    text-align: left;
-    padding: 0.5rem;
-    margin: 0.5rem 0;
-    background: none;
-    border: 1px solid var(--primary-color);
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
+.btn-secondary {
+    background-color: transparent;
+    border: 2px solid var(--secondary-color);
+    color: var(--secondary-color);
 }
 
-.attribute-button:hover {
-    background-color: var(--primary-color);
+.btn-secondary:hover {
+    background-color: var(--secondary-color);
     color: white;
+}
+
+/* Footer */
+.game-footer {
+    margin-top: 2rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--modal-background);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    padding: 2rem;
+    border-radius: 10px;
+    max-width: 600px;
+    width: 90%;
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+}
+
+.modal-content h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.rules-content {
+    margin-bottom: 2rem;
+}
+
+.rules-content ol {
+    padding-left: 1.5rem;
+}
+
+.rules-content li {
+    margin-bottom: 0.8rem;
+}
+
+/* Animations */
+@keyframes cardFlip {
+    from {
+        transform: rotateY(180deg);
+        opacity: 0;
+    }
+    to {
+        transform: rotateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.slide-in {
+    animation: slideIn 0.5s ease-out;
+}
+
+/* Card transfer animation */
+.card.transfer {
+    animation: transfer 1s ease-out;
+}
+
+@keyframes transfer {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(0.9) translateY(-20px);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
     .game-board {
         grid-template-columns: 1fr;
+        gap: 1rem;
     }
 
     .score-container {
         flex-direction: column;
         gap: 0.5rem;
+    }
+
+    .card {
+        min-height: 300px;
+    }
+
+    .game-header h1 {
+        font-size: 2rem;
+    }
+
+    .btn {
+        padding: 0.8rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .modal-content {
+        padding: 1.5rem;
+        width: 95%;
     }
 }

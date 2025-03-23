@@ -4,21 +4,23 @@ const gameState = {
     computerDeck: [],
     drawPile: [],
     isPlayerTurn: true,
-    gameStarted: false
+    gameStarted: false,
+    isAnimating: false,
+    roundHistory: []
 };
 
 // Sample deck data (we'll expand this later)
 const DECK_DATA = {
     theme: "Awesome Animals",
     cards: [
-        { name: "Lion", size: 250, speed: 80, lifespan: 15 },
-        { name: "Elephant", size: 400, speed: 40, lifespan: 70 },
-        { name: "Cheetah", size: 150, speed: 120, lifespan: 12 },
-        { name: "Giraffe", size: 500, speed: 60, lifespan: 25 },
-        { name: "Gorilla", size: 180, speed: 40, lifespan: 40 },
-        { name: "Kangaroo", size: 200, speed: 70, lifespan: 22 },
-        { name: "Rhinoceros", size: 380, speed: 50, lifespan: 45 },
-        { name: "Zebra", size: 220, speed: 65, lifespan: 25 }
+        { name: "Lion", size: 250, speed: 80, lifespan: 15, strength: 95 },
+        { name: "Elephant", size: 400, speed: 40, lifespan: 70, strength: 100 },
+        { name: "Cheetah", size: 150, speed: 120, lifespan: 12, strength: 50 },
+        { name: "Giraffe", size: 500, speed: 60, lifespan: 25, strength: 40 },
+        { name: "Gorilla", size: 180, speed: 40, lifespan: 40, strength: 85 },
+        { name: "Kangaroo", size: 200, speed: 70, lifespan: 22, strength: 60 },
+        { name: "Rhinoceros", size: 380, speed: 50, lifespan: 45, strength: 90 },
+        { name: "Zebra", size: 220, speed: 65, lifespan: 25, strength: 45 }
     ]
 };
 
@@ -30,6 +32,9 @@ const computerCardsCount = document.getElementById('computer-cards');
 const gameMessage = document.getElementById('game-message');
 const startButton = document.getElementById('start-game');
 const restartButton = document.getElementById('restart-game');
+const rulesModal = document.getElementById('rules-modal');
+const showRulesButton = document.getElementById('show-rules');
+const closeRulesButton = document.getElementById('close-rules');
 
 // Fisher-Yates shuffle algorithm
 function shuffleDeck(deck) {
@@ -50,15 +55,41 @@ function dealCards() {
     updateCardCounts();
 }
 
-// Update card counts display
+// Update card counts display with animation
 function updateCardCounts() {
-    playerCardsCount.textContent = gameState.playerDeck.length;
-    computerCardsCount.textContent = gameState.computerDeck.length;
+    const playerCount = gameState.playerDeck.length;
+    const computerCount = gameState.computerDeck.length;
+    
+    animateNumber(playerCardsCount, parseInt(playerCardsCount.textContent), playerCount);
+    animateNumber(computerCardsCount, parseInt(computerCardsCount.textContent), computerCount);
+}
+
+// Animate number counting
+function animateNumber(element, start, end) {
+    const duration = 500;
+    const steps = 20;
+    const stepValue = (end - start) / steps;
+    let current = start;
+    
+    const animate = () => {
+        current += stepValue;
+        if ((stepValue > 0 && current >= end) || (stepValue < 0 && current <= end)) {
+            element.textContent = end;
+            return;
+        }
+        element.textContent = Math.round(current);
+        requestAnimationFrame(animate);
+    };
+    
+    animate();
 }
 
 // Display card on the game board
 function displayCard(card, element, showAttributes = true) {
-    if (!card) return;
+    if (!card) {
+        element.innerHTML = '';
+        return;
+    }
 
     const attributes = showAttributes ? `
         <ul class="attribute-list">
@@ -67,7 +98,8 @@ function displayCard(card, element, showAttributes = true) {
                 .map(([key, value]) => `
                     <li>
                         <button class="attribute-button" data-attribute="${key}">
-                            ${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}
+                            <span>${key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                            <span>${value}</span>
                         </button>
                     </li>
                 `).join('')}
@@ -75,13 +107,13 @@ function displayCard(card, element, showAttributes = true) {
     ` : '';
 
     element.innerHTML = `
-        <div class="card-content">
+        <div class="card-content slide-in">
             <h3>${card.name}</h3>
             ${attributes}
         </div>
     `;
 
-    if (showAttributes) {
+    if (showAttributes && gameState.isPlayerTurn) {
         element.querySelectorAll('.attribute-button').forEach(button => {
             button.addEventListener('click', () => handleAttributeSelection(button.dataset.attribute));
         });
@@ -90,39 +122,67 @@ function displayCard(card, element, showAttributes = true) {
 
 // Handle attribute selection
 function handleAttributeSelection(attribute) {
-    if (!gameState.gameStarted || !gameState.isPlayerTurn) return;
+    if (!gameState.gameStarted || !gameState.isPlayerTurn || gameState.isAnimating) return;
 
+    gameState.isAnimating = true;
     const playerCard = gameState.playerDeck[0];
     const computerCard = gameState.computerDeck[0];
 
-    // Reveal computer's card
-    displayCard(computerCard, computerCardElement, true);
+    // Highlight selected attribute
+    const selectedButton = playerCardElement.querySelector(`[data-attribute="${attribute}"]`);
+    selectedButton.classList.add('selected');
+
+    // Reveal computer's card with animation
     computerCardElement.classList.remove('card-back');
+    displayCard(computerCard, computerCardElement, true);
 
     // Compare values and determine winner
     const playerValue = playerCard[attribute];
     const computerValue = computerCard[attribute];
 
-    let message;
-    if (playerValue > computerValue) {
-        message = "You win this round!";
-        handleRoundWin('player');
-    } else if (computerValue > playerValue) {
-        message = "Computer wins this round!";
-        handleRoundWin('computer');
-    } else {
-        message = "It's a draw!";
-        handleDraw();
-    }
+    setTimeout(() => {
+        // Highlight winner and loser
+        const playerButton = playerCardElement.querySelector(`[data-attribute="${attribute}"]`);
+        const computerButton = computerCardElement.querySelector(`[data-attribute="${attribute}"]`);
+        
+        if (playerValue > computerValue) {
+            playerButton.classList.add('winner');
+            computerButton.classList.add('loser');
+            showGameMessage("You win this round!", 'success');
+            handleRoundWin('player', attribute);
+        } else if (computerValue > playerValue) {
+            playerButton.classList.add('loser');
+            computerButton.classList.add('winner');
+            showGameMessage("Computer wins this round!", 'error');
+            handleRoundWin('computer', attribute);
+        } else {
+            playerButton.classList.add('selected');
+            computerButton.classList.add('selected');
+            showGameMessage("It's a draw!", '');
+            handleDraw(attribute);
+        }
+    }, 500);
+}
 
+// Show game message with animation
+function showGameMessage(message, type = '') {
     gameMessage.textContent = message;
-    checkGameOver();
+    gameMessage.className = 'game-message slide-in';
+    if (type) gameMessage.classList.add(type);
 }
 
 // Handle round win
-function handleRoundWin(winner) {
+function handleRoundWin(winner, attribute) {
     const playerCard = gameState.playerDeck.shift();
     const computerCard = gameState.computerDeck.shift();
+
+    // Record round history for AI learning
+    gameState.roundHistory.push({
+        winner,
+        attribute,
+        playerCard,
+        computerCard
+    });
 
     if (winner === 'player') {
         gameState.playerDeck.push(playerCard, computerCard);
@@ -144,18 +204,28 @@ function handleRoundWin(winner) {
 
     setTimeout(() => {
         updateCardCounts();
+        gameState.isAnimating = false;
         startNextRound();
     }, 1500);
 }
 
 // Handle draw
-function handleDraw() {
+function handleDraw(attribute) {
     const playerCard = gameState.playerDeck.shift();
     const computerCard = gameState.computerDeck.shift();
     gameState.drawPile.push(playerCard, computerCard);
     
+    // Record draw in history
+    gameState.roundHistory.push({
+        winner: 'draw',
+        attribute,
+        playerCard,
+        computerCard
+    });
+
     setTimeout(() => {
         updateCardCounts();
+        gameState.isAnimating = false;
         startNextRound();
     }, 1500);
 }
@@ -167,9 +237,8 @@ function startNextRound() {
         if (gameState.isPlayerTurn) {
             displayCard(gameState.playerDeck[0], playerCardElement, true);
             displayCard(null, computerCardElement, false);
-            gameMessage.textContent = "Select an attribute to compare!";
+            showGameMessage("Select an attribute to compare!");
         } else {
-            // Computer's turn
             displayCard(gameState.playerDeck[0], playerCardElement, true);
             displayCard(null, computerCardElement, false);
             setTimeout(computerPlay, 1000);
@@ -177,13 +246,37 @@ function startNextRound() {
     }
 }
 
-// Computer play
+// Improved computer AI
 function computerPlay() {
     if (!gameState.gameStarted || gameState.isPlayerTurn) return;
 
     const computerCard = gameState.computerDeck[0];
-    const attributes = Object.keys(computerCard).filter(key => key !== 'name');
-    const selectedAttribute = attributes[0]; // Always select first attribute for MVP
+    const attributes = Object.entries(computerCard)
+        .filter(([key]) => key !== 'name')
+        .map(([key, value]) => ({ name: key, value }));
+
+    // Strategy 1: Choose highest value
+    let selectedAttribute = attributes.reduce((best, current) => 
+        current.value > best.value ? current : best
+    ).name;
+
+    // Strategy 2: Learn from history (if available)
+    if (gameState.roundHistory.length > 0) {
+        const recentRounds = gameState.roundHistory.slice(-3);
+        const successfulAttributes = recentRounds
+            .filter(round => round.winner === 'computer')
+            .map(round => round.attribute);
+
+        if (successfulAttributes.length > 0) {
+            // Prefer previously successful attributes if they have high values
+            const bestHistoricalAttribute = successfulAttributes.find(attr => 
+                computerCard[attr] >= Math.max(...attributes.map(a => computerCard[a.name])) * 0.8
+            );
+            if (bestHistoricalAttribute) {
+                selectedAttribute = bestHistoricalAttribute;
+            }
+        }
+    }
 
     handleAttributeSelection(selectedAttribute);
 }
@@ -192,7 +285,7 @@ function computerPlay() {
 function checkGameOver() {
     if (gameState.playerDeck.length === 0 || gameState.computerDeck.length === 0) {
         const winner = gameState.playerDeck.length > 0 ? "You win!" : "Computer wins!";
-        gameMessage.textContent = `Game Over - ${winner}`;
+        showGameMessage(`Game Over - ${winner}`, gameState.playerDeck.length > 0 ? 'success' : 'error');
         startButton.style.display = 'none';
         restartButton.style.display = 'inline-block';
         gameState.gameStarted = false;
@@ -206,12 +299,49 @@ function startGame() {
     gameState.gameStarted = true;
     gameState.isPlayerTurn = true;
     gameState.drawPile = [];
-    dealCards();
+    gameState.roundHistory = [];
+    gameState.isAnimating = false;
+    
+    // Reset UI
+    gameMessage.className = 'game-message';
+    gameMessage.textContent = '';
     startButton.style.display = 'none';
     restartButton.style.display = 'none';
+    
+    dealCards();
     startNextRound();
 }
 
 // Event listeners
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
+showRulesButton.addEventListener('click', showRules);
+closeRulesButton.addEventListener('click', hideRules);
+
+// Close modal when clicking outside
+rulesModal.addEventListener('click', (e) => {
+    if (e.target === rulesModal) {
+        hideRules();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && rulesModal.style.display === 'flex') {
+        hideRules();
+    }
+});
+
+// Initialize game
+showGameMessage("Click 'Start Game' to begin!");
+
+// Add these functions after the existing functions
+function showRules() {
+    rulesModal.style.display = 'flex';
+    rulesModal.classList.add('slide-in');
+}
+
+function hideRules() {
+    rulesModal.classList.remove('slide-in');
+    rulesModal.style.display = 'none';
+}
