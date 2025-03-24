@@ -1,90 +1,148 @@
-# TRUNFO Card Game
+# TRUNFO - Top Trumps Game
 
-A web-based implementation of the classic Top Trumps card game, where players compare numerical attributes of cards to win rounds and collect cards from their opponent.
+A web-based single-player Top Trumps game built with vanilla JavaScript, HTML5, and CSS3. Play against a computer opponent in this classic card comparison game.
 
-## Features
+## 🎮 Play Now
 
-- Single-player gameplay against a computer opponent
-- Themed deck of cards (currently featuring "Awesome Animals")
-- Interactive card display with clickable attributes
-- Score tracking and game state management
-- Responsive design for desktop browsers
+Visit [https://your-username.github.io/trunfo](https://your-username.github.io/trunfo) to play the game online.
 
-## Tech Stack
+## 🎯 Features
 
-- HTML5
-- CSS3
-- Vanilla JavaScript
+- Single-player gameplay against an AI opponent
+- Themed deck with unique attributes for each card
+- Smooth animations and visual feedback
+- Score tracking and game statistics
+- Responsive design
+- Error handling and loading states
+- Comprehensive test suite
 
-## Project Structure
+## 🎲 How to Play
 
-```
-src/
-├── index.html      # Main game interface
-├── css/
-│   └── styles.css  # Game styles
-├── js/
-│   └── game.js     # Game logic
-└── assets/         # Future: images and other assets
-```
+1. The deck is split equally between you and the computer.
+2. Each round, you'll see your top card with its attributes.
+3. Choose an attribute to compare with the computer's card.
+4. The player with the higher value wins both cards.
+5. In case of a draw, the cards go to a draw pile.
+6. The winner of the next round gets the draw pile too.
+7. The game ends when one player has all the cards.
 
-## Getting Started
+## 🛠️ Development
+
+### Prerequisites
+
+- Node.js (v20 or higher)
+- npm (v9 or higher)
+
+### Setup
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/trunfo.git
+   git clone https://github.com/your-username/trunfo.git
+   cd trunfo
    ```
 
-2. Open `src/index.html` in your web browser to start playing.
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## How to Play
+3. Start a local development server (using any static file server):
+   ```bash
+   # Example using Python's built-in server
+   python -m http.server 8000
+   ```
 
-1. Click "Start Game" to begin
-2. On your turn:
-   - View your card's attributes
-   - Click an attribute to compare with the computer's card
-3. The player with the higher value wins both cards
-4. In case of a draw, cards go to a draw pile
-5. The winner of the next round claims the draw pile
-6. Game ends when one player collects all cards
+4. Open http://localhost:8000/src in your browser.
 
-## Development
+### Project Structure
 
-The project is organized into milestones:
+```
+trunfo/
+├── src/
+│   ├── css/
+│   │   └── styles.css
+│   ├── js/
+│   │   └── game.js
+│   ├── tests/
+│   │   └── game.test.js
+│   └── index.html
+├── build.js
+├── package.json
+└── README.md
+```
 
-1. Core Game Logic ✓
-   - Basic game structure
-   - Card management
-   - Round logic
+### Building for Production
 
-2. User Interface and Basic AI (In Progress)
-   - Card display
-   - Attribute selection
-   - Simple computer opponent
+1. Build the project:
+   ```bash
+   npm run build
+   ```
 
-3. Game Flow and Win Conditions (Planned)
-   - Turn management
-   - Draw handling
-   - Game over conditions
+2. Deploy to GitHub Pages:
+   ```bash
+   npm run deploy
+   ```
 
-4. Testing and Polish (Planned)
-   - Bug fixes
-   - UI improvements
-   - Performance optimization
+### Running Tests
 
-## Contributing
+1. Open the game in your browser
+2. Click the "Run Tests" button in the game interface
+3. Check the browser console for test results
+
+## 🧪 Testing
+
+The game includes a comprehensive test suite that covers:
+- Card dealing and deck management
+- Game logic and state management
+- AI behavior and decision making
+- Win conditions and game over states
+
+## 🎨 Customization
+
+### Adding New Card Decks
+
+1. Open `src/js/game.js`
+2. Modify the `DECK_DATA` object:
+   ```javascript
+   const DECK_DATA = {
+       theme: "Your Theme",
+       cards: [
+           { name: "Card1", attribute1: value1, attribute2: value2 },
+           // Add more cards...
+       ]
+   };
+   ```
+
+### Styling
+
+1. Modify `src/css/styles.css` to customize the game's appearance
+2. The game uses CSS variables for easy theme customization
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+## 📦 Dependencies
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Development dependencies:
+- clean-css: CSS minification
+- gh-pages: GitHub Pages deployment
+- html-minifier: HTML minification
+- terser: JavaScript minification
 
-## Acknowledgments
+## 🔄 Version History
 
-- Inspired by the classic Top Trumps card game
-- Built as a learning project for web development 
+- 1.0.0: Initial release
+  - Basic game functionality
+  - Single-player mode
+  - AI opponent
+  - Test suite
+  - Production build setup 

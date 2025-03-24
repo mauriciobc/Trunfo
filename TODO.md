@@ -86,9 +86,9 @@
 - [x] Update README.md
 
 ### Deployment
-- [ ] Prepare for production
-- [ ] Optimize assets
-- [ ] Deploy to GitHub Pages
+- [x] Prepare for production
+- [x] Optimize assets
+- [x] Deploy to GitHub Pages
 
 ## Notes
 - Each milestone should be completed in its own branch
