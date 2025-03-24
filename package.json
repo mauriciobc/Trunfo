@@ -18,7 +18,7 @@
   "devDependencies": {
     "clean-css": "^5.3.2",
     "gh-pages": "^6.1.1",
-    "html-minifier": "^4.0.0",
+    "html-minifier-terser": "^7.2.0",
     "terser": "^5.27.0"
   }
 } 

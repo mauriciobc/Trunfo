@@ -1,101 +1,107 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const { minify } = require('terser');
 const CleanCSS = require('clean-css');
-const htmlMinifier = require('html-minifier');
+const { minify: minifyHtml } = require('html-minifier-terser');
 
 // Configuration
 const config = {
     srcDir: 'src',
     distDir: 'dist',
-    htmlMinifierOptions: {
-        removeComments: true,
-        collapseWhitespace: true,
-        removeAttributeQuotes: true,
-        removeRedundantAttributes: true,
-        removeEmptyAttributes: true,
-        minifyJS: true,
-        minifyCSS: true
+    js: {
+        dir: 'js',
+        minifyOptions: {
+            compress: true,
+            mangle: true
+        }
+    },
+    css: {
+        dir: 'css',
+        minifyOptions: {
+            level: 2
+        }
+    },
+    html: {
+        minifyOptions: {
+            collapseWhitespace: true,
+            removeComments: true,
+            minifyCSS: true,
+            minifyJS: true
+        }
     }
 };
 
-// Create dist directory if it doesn't exist
-if (!fs.existsSync(config.distDir)) {
-    fs.mkdirSync(config.distDir);
-}
-
-// Copy and minify JavaScript files
-async function processJavaScript() {
-    console.log('Processing JavaScript files...');
-    const jsFiles = [
-        'js/game.js',
-        'tests/game.test.js'
-    ];
-
-    for (const file of jsFiles) {
-        const srcPath = path.join(config.srcDir, file);
-        const distPath = path.join(config.distDir, file);
-        
-        // Create directory if it doesn't exist
-        const dir = path.dirname(distPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        const code = fs.readFileSync(srcPath, 'utf8');
-        const minified = await minify(code, {
-            compress: true,
-            mangle: true
-        });
-
-        fs.writeFileSync(distPath, minified.code);
+async function ensureDir(dir) {
+    try {
+        await fs.mkdir(dir, { recursive: true });
+    } catch (err) {
+        if (err.code !== 'EEXIST') throw err;
     }
 }
 
-// Process CSS files
-function processCSS() {
-    console.log('Processing CSS files...');
-    const cssFiles = ['css/styles.css'];
-
-    for (const file of cssFiles) {
-        const srcPath = path.join(config.srcDir, file);
-        const distPath = path.join(config.distDir, file);
-        
-        // Create directory if it doesn't exist
-        const dir = path.dirname(distPath);
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-
-        const css = fs.readFileSync(srcPath, 'utf8');
-        const minified = new CleanCSS().minify(css);
-        fs.writeFileSync(distPath, minified.styles);
-    }
+async function processJavaScript(file) {
+    const content = await fs.readFile(file, 'utf8');
+    const result = await minify(content, config.js.minifyOptions);
+    const outputPath = file.replace(config.srcDir, config.distDir);
+    await ensureDir(path.dirname(outputPath));
+    await fs.writeFile(outputPath, result.code);
+    console.log(`Processed JavaScript: ${file} -> ${outputPath}`);
 }
 
-// Process HTML files
-function processHTML() {
-    console.log('Processing HTML files...');
-    const htmlFiles = ['index.html'];
+async function processCSS(file) {
+    const content = await fs.readFile(file, 'utf8');
+    const result = new CleanCSS(config.css.minifyOptions).minify(content);
+    const outputPath = file.replace(config.srcDir, config.distDir);
+    await ensureDir(path.dirname(outputPath));
+    await fs.writeFile(outputPath, result.styles);
+    console.log(`Processed CSS: ${file} -> ${outputPath}`);
+}
 
-    for (const file of htmlFiles) {
-        const srcPath = path.join(config.srcDir, file);
-        const distPath = path.join(config.distDir, file);
-        
-        const html = fs.readFileSync(srcPath, 'utf8');
-        const minified = htmlMinifier.minify(html, config.htmlMinifierOptions);
-        fs.writeFileSync(distPath, minified);
-    }
+async function processHTML(file) {
+    const content = await fs.readFile(file, 'utf8');
+    const result = await minifyHtml(content, config.html.minifyOptions);
+    const outputPath = file.replace(config.srcDir, config.distDir);
+    await ensureDir(path.dirname(outputPath));
+    await fs.writeFile(outputPath, result);
+    console.log(`Processed HTML: ${file} -> ${outputPath}`);
+}
+
+async function copyFile(file) {
+    const outputPath = file.replace(config.srcDir, config.distDir);
+    await ensureDir(path.dirname(outputPath));
+    await fs.copyFile(file, outputPath);
+    console.log(`Copied: ${file} -> ${outputPath}`);
 }
 
 // Main build process
 async function build() {
-    console.log('Starting build process...');
-    
     try {
-        await processJavaScript();
-        processCSS();
-        processHTML();
+        console.log('Starting build process...');
+        
+        // Clean dist directory
+        await fs.rm(config.distDir, { recursive: true, force: true });
+        await ensureDir(config.distDir);
+        
+        // Process all files
+        const files = await fs.readdir(config.srcDir, { recursive: true });
+        
+        for (const file of files) {
+            const fullPath = path.join(config.srcDir, file);
+            const stat = await fs.stat(fullPath);
+            
+            if (stat.isFile()) {
+                if (file.endsWith('.js')) {
+                    await processJavaScript(fullPath);
+                } else if (file.endsWith('.css')) {
+                    await processCSS(fullPath);
+                } else if (file.endsWith('.html')) {
+                    await processHTML(fullPath);
+                } else {
+                    await copyFile(fullPath);
+                }
+            }
+        }
+        
         console.log('Build completed successfully!');
     } catch (error) {
         console.error('Build failed:', error);
