@@ -37,7 +37,7 @@ Visit [https://mauriciobc.github.io/trunfo](https://mauriciobc.github.io/trunfo)
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/trunfo.git
+   git clone https://github.com/mauriciobc/trunfo.git
    cd trunfo
    ```
 
@@ -135,7 +135,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Development dependencies:
 - clean-css: CSS minification
 - gh-pages: GitHub Pages deployment
-- html-minifier: HTML minification
+- html-minifier-terser: HTML minification
 - terser: JavaScript minification
 
 ## 🔄 Version History
@@ -145,4 +145,4 @@ Development dependencies:
   - Single-player mode
   - AI opponent
   - Test suite
-  - Production build setup 
+  - Production build setup

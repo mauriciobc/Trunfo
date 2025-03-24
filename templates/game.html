@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brasileirão Série A Card Game</title>
+</head>
+<body>
+    <h1>Brasileirão Série A Card Game</h1>
+
+    {% if game %}
+    <h2>Current Game</h2>
+    <p>Playing against: {{ game.players|length }} players</p>
+    <p>Current Category: {{ game.current_category }}</p>
+
+    <h3>Your Hand</h3>
+    <ul>
+        {% for card in game.players[0] %}  <li>{{ card["name"] }} ({{ card[game.current_category] }})</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Discard Pile</h3>
+    <ul>
+        </ul>
+
+    <h3>Other Players</h3>
+    <button onclick="playCard()">Play Selected Card</button>
+    {% else %}
+    <p>No active game. Join or create a new game!</p>
+    {% endif %}
+
+    <script>
+        // Example function to simulate playing a card (replace with actual logic)
+        function playCard() {
+            alert("Card played!");
+        }
+    </script>
+</body>
+</html>

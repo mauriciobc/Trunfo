@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brasileirão Série A Card Game - Lobbies</title>
+</head>
+<body>
+    <h1>Brasileirão Série A Card Game - Lobbies</h1>
+
+    <h2>Available Lobbies</h2>
+    <ul>
+        {% if lobbies %}
+            {% for lobby in lobbies %}
+            <li><a href="/game/{{ lobby.lower().replace(' ', '-') }}">{{ lobby }}</a></li>
+            {% endfor %}
+        {% else %}
+            <p>No lobbies available yet. Create a new one!</p>
+        {% endif %}
+    </ul>
+
+    <h2>Create New Lobby</h2>
+    <form action="/create_lobby" method="post">
+        <label for="deck_name">Deck:</label>
+        <select name="deck_name" id="deck_name">
+            <option value="brasileirao_2023">Brasileirão Série A 2023</option>
+            </select><br>
+        <label for="num_players">Number of Players:</label>
+        <select name="num_players" id="num_players">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            </select><br>
+        <button type="submit">Create Lobby</button>
+    </form>
+</body>
+</html>
