@@ -27,20 +27,20 @@
 **Branch: `feature/ui-and-ai`**
 
 ### User Interface
-- [ ] Design and implement game layout
-- [ ] Create card display components
-- [ ] Implement category selection buttons
-- [ ] Add visual feedback for:
-  - [ ] Selected categories
-  - [ ] Round outcomes
-  - [ ] Card counts
-  - [ ] Game messages
+- [x] Design and implement game layout
+- [x] Create card display components
+- [x] Implement category selection buttons
+- [x] Add visual feedback for:
+  - [x] Selected categories
+  - [x] Round outcomes
+  - [x] Card counts
+  - [x] Game messages
 
 ### AI Implementation
-- [ ] Create basic AI opponent logic
-- [ ] Implement computer's turn mechanism
-- [ ] Add AI category selection (first attribute strategy)
-- [ ] Test AI behavior
+- [x] Create basic AI opponent logic
+- [x] Implement computer's turn mechanism
+- [x] Add AI category selection (first attribute strategy)
+- [x] Test AI behavior
 
 ## Milestone 3: Game Flow and Win Conditions 🏆
 **Branch: `feature/game-flow`**
