@@ -46,16 +46,16 @@
 **Branch: `feature/game-flow`**
 
 ### Game Flow
-- [ ] Implement turn management
-- [ ] Add round transition logic
-- [ ] Create draw pile management
-- [ ] Implement card transfer animations (basic)
+- [x] Implement turn management
+- [x] Add round transition logic
+- [x] Create draw pile management
+- [x] Implement card transfer animations (basic)
 
 ### Win Conditions
-- [ ] Add game over detection
-- [ ] Create win/loss screens
-- [ ] Implement game restart functionality
-- [ ] Add score tracking
+- [x] Add game over detection
+- [x] Create win/loss screens
+- [x] Implement game restart functionality
+- [x] Add score tracking
 
 ## Milestone 4: Testing and Polish ✨
 **Branch: `feature/testing-and-polish`**

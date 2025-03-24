@@ -6,7 +6,13 @@ const gameState = {
     isPlayerTurn: true,
     gameStarted: false,
     isAnimating: false,
-    roundHistory: []
+    roundHistory: [],
+    score: {
+        player: 0,
+        computer: 0,
+        draws: 0,
+        roundsPlayed: 0
+    }
 };
 
 // Sample deck data (we'll expand this later)
@@ -184,12 +190,28 @@ function handleRoundWin(winner, attribute) {
         computerCard
     });
 
+    // Update score
+    gameState.score.roundsPlayed++;
     if (winner === 'player') {
+        gameState.score.player++;
         gameState.playerDeck.push(playerCard, computerCard);
         gameState.isPlayerTurn = true;
+        
+        // Add card transfer animation
+        computerCardElement.classList.add('transfer');
+        setTimeout(() => {
+            computerCardElement.classList.remove('transfer');
+        }, 1000);
     } else {
+        gameState.score.computer++;
         gameState.computerDeck.push(playerCard, computerCard);
         gameState.isPlayerTurn = false;
+        
+        // Add card transfer animation
+        playerCardElement.classList.add('transfer');
+        setTimeout(() => {
+            playerCardElement.classList.remove('transfer');
+        }, 1000);
     }
 
     // Add any cards from draw pile
@@ -201,6 +223,10 @@ function handleRoundWin(winner, attribute) {
         }
         gameState.drawPile = [];
     }
+
+    // Update game message with score
+    const scoreMessage = `Score - You: ${gameState.score.player} | Computer: ${gameState.score.computer} | Draws: ${gameState.score.draws}`;
+    showGameMessage(`${winner === 'player' ? "You win" : "Computer wins"} this round! ${scoreMessage}`, winner === 'player' ? 'success' : 'error');
 
     setTimeout(() => {
         updateCardCounts();
@@ -215,6 +241,10 @@ function handleDraw(attribute) {
     const computerCard = gameState.computerDeck.shift();
     gameState.drawPile.push(playerCard, computerCard);
     
+    // Update score
+    gameState.score.roundsPlayed++;
+    gameState.score.draws++;
+    
     // Record draw in history
     gameState.roundHistory.push({
         winner: 'draw',
@@ -222,6 +252,10 @@ function handleDraw(attribute) {
         playerCard,
         computerCard
     });
+
+    // Update game message with score
+    const scoreMessage = `Score - You: ${gameState.score.player} | Computer: ${gameState.score.computer} | Draws: ${gameState.score.draws}`;
+    showGameMessage(`It's a draw! ${scoreMessage}`);
 
     setTimeout(() => {
         updateCardCounts();
@@ -284,14 +318,56 @@ function computerPlay() {
 // Check for game over
 function checkGameOver() {
     if (gameState.playerDeck.length === 0 || gameState.computerDeck.length === 0) {
-        const winner = gameState.playerDeck.length > 0 ? "You win!" : "Computer wins!";
-        showGameMessage(`Game Over - ${winner}`, gameState.playerDeck.length > 0 ? 'success' : 'error');
+        const isPlayerWinner = gameState.playerDeck.length > 0;
+        const finalMessage = `Game Over!\n
+            ${isPlayerWinner ? "Congratulations! You win!" : "Computer wins!"}\n
+            Final Score:\n
+            You: ${gameState.score.player} wins\n
+            Computer: ${gameState.score.computer} wins\n
+            Draws: ${gameState.score.draws}\n
+            Total Rounds: ${gameState.score.roundsPlayed}`;
+        
+        showGameMessage(finalMessage.replace(/\n/g, '<br>'), isPlayerWinner ? 'success' : 'error');
+        
+        // Show game over screen
+        showGameOverScreen(isPlayerWinner);
+        
         startButton.style.display = 'none';
         restartButton.style.display = 'inline-block';
         gameState.gameStarted = false;
         return true;
     }
     return false;
+}
+
+// Show game over screen
+function showGameOverScreen(isPlayerWinner) {
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.style.display = 'flex';
+    
+    modal.innerHTML = `
+        <div class="modal-content slide-in">
+            <h2><i class="fas ${isPlayerWinner ? 'fa-trophy' : 'fa-robot'}"></i> Game Over</h2>
+            <div class="rules-content">
+                <h3>${isPlayerWinner ? "Congratulations! You Win!" : "Computer Wins!"}</h3>
+                <div class="final-stats">
+                    <p>Final Statistics:</p>
+                    <ul>
+                        <li>Your Wins: ${gameState.score.player}</li>
+                        <li>Computer Wins: ${gameState.score.computer}</li>
+                        <li>Draws: ${gameState.score.draws}</li>
+                        <li>Total Rounds: ${gameState.score.roundsPlayed}</li>
+                    </ul>
+                </div>
+            </div>
+            <button class="btn" onclick="this.closest('.modal').remove(); startGame();">
+                <i class="fas fa-redo"></i> Play Again
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
 }
 
 // Start game
@@ -301,12 +377,24 @@ function startGame() {
     gameState.drawPile = [];
     gameState.roundHistory = [];
     gameState.isAnimating = false;
+    gameState.score = {
+        player: 0,
+        computer: 0,
+        draws: 0,
+        roundsPlayed: 0
+    };
     
     // Reset UI
     gameMessage.className = 'game-message';
     gameMessage.textContent = '';
     startButton.style.display = 'none';
     restartButton.style.display = 'none';
+    
+    // Remove any existing game over screen
+    const existingModal = document.querySelector('.modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
     
     dealCards();
     startNextRound();
