@@ -7,13 +7,17 @@
     "build": "node build.js",
     "deploy": "npm run build && gh-pages -d dist"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mauriciobc/trunfo.git"
+  },
   "keywords": [
     "game",
     "top-trumps",
     "cards",
     "javascript"
   ],
-  "author": "",
+  "author": "mauriciobc",
   "license": "MIT",
   "devDependencies": {
     "clean-css": "^5.3.2",

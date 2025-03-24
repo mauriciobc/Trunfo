@@ -4,7 +4,7 @@ A web-based single-player Top Trumps game built with vanilla JavaScript, HTML5, 
 
 ## 🎮 Play Now
 
-Visit [https://your-username.github.io/trunfo](https://your-username.github.io/trunfo) to play the game online.
+Visit [https://mauriciobc.github.io/trunfo](https://mauriciobc.github.io/trunfo) to play the game online.
 
 ## 🎯 Features
 
