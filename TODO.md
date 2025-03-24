@@ -61,20 +61,20 @@
 **Branch: `feature/testing-and-polish`**
 
 ### Testing
-- [ ] Create test cases for:
-  - [ ] Card dealing
-  - [ ] Game logic
-  - [ ] AI behavior
-  - [ ] Win conditions
+- [x] Create test cases for:
+  - [x] Card dealing
+  - [x] Game logic
+  - [x] AI behavior
+  - [x] Win conditions
 - [ ] Perform cross-browser testing
-- [ ] Fix identified bugs
+- [x] Fix identified bugs
 
 ### Polish
-- [ ] Refine UI/UX
-- [ ] Add loading states
-- [ ] Improve error handling
-- [ ] Add basic animations
-- [ ] Optimize performance
+- [x] Refine UI/UX
+- [x] Add loading states
+- [x] Improve error handling
+- [x] Add basic animations
+- [x] Optimize performance
 
 ## Milestone 5: Documentation and Deployment 📚
 **Branch: `feature/documentation`**

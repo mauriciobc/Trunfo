@@ -42,6 +42,44 @@ const rulesModal = document.getElementById('rules-modal');
 const showRulesButton = document.getElementById('show-rules');
 const closeRulesButton = document.getElementById('close-rules');
 
+// Add loading state management
+const loadingState = {
+    isLoading: false,
+    setLoading: function(loading) {
+        this.isLoading = loading;
+        document.body.classList.toggle('loading', loading);
+        
+        // Disable buttons during loading
+        const buttons = document.querySelectorAll('.btn');
+        buttons.forEach(button => {
+            button.disabled = loading;
+        });
+    }
+};
+
+// Error handling wrapper
+function errorHandler(fn) {
+    return function(...args) {
+        try {
+            return fn.apply(this, args);
+        } catch (error) {
+            console.error('Game Error:', error);
+            showGameMessage('An error occurred. Please try again.', 'error');
+            loadingState.setLoading(false);
+            return null;
+        }
+    };
+}
+
+// Performance optimization: Debounce function
+function debounce(fn, delay) {
+    let timeoutId;
+    return function(...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
 // Fisher-Yates shuffle algorithm
 function shuffleDeck(deck) {
     const shuffled = [...deck];
@@ -134,8 +172,15 @@ function handleAttributeSelection(attribute) {
     const playerCard = gameState.playerDeck[0];
     const computerCard = gameState.computerDeck[0];
 
+    if (!playerCard || !computerCard) {
+        throw new Error('Invalid game state: Missing cards');
+    }
+
     // Highlight selected attribute
     const selectedButton = playerCardElement.querySelector(`[data-attribute="${attribute}"]`);
+    if (!selectedButton) {
+        throw new Error('Invalid attribute selection');
+    }
     selectedButton.classList.add('selected');
 
     // Reveal computer's card with animation
@@ -145,6 +190,10 @@ function handleAttributeSelection(attribute) {
     // Compare values and determine winner
     const playerValue = playerCard[attribute];
     const computerValue = computerCard[attribute];
+
+    if (typeof playerValue !== 'number' || typeof computerValue !== 'number') {
+        throw new Error('Invalid attribute values');
+    }
 
     setTimeout(() => {
         // Highlight winner and loser
@@ -371,40 +420,46 @@ function showGameOverScreen(isPlayerWinner) {
 }
 
 // Start game
-function startGame() {
-    gameState.gameStarted = true;
-    gameState.isPlayerTurn = true;
-    gameState.drawPile = [];
-    gameState.roundHistory = [];
-    gameState.isAnimating = false;
-    gameState.score = {
-        player: 0,
-        computer: 0,
-        draws: 0,
-        roundsPlayed: 0
-    };
+const startGame = errorHandler(function() {
+    loadingState.setLoading(true);
     
-    // Reset UI
-    gameMessage.className = 'game-message';
-    gameMessage.textContent = '';
-    startButton.style.display = 'none';
-    restartButton.style.display = 'none';
-    
-    // Remove any existing game over screen
-    const existingModal = document.querySelector('.modal');
-    if (existingModal) {
-        existingModal.remove();
+    try {
+        gameState.gameStarted = true;
+        gameState.isPlayerTurn = true;
+        gameState.drawPile = [];
+        gameState.roundHistory = [];
+        gameState.isAnimating = false;
+        gameState.score = {
+            player: 0,
+            computer: 0,
+            draws: 0,
+            roundsPlayed: 0
+        };
+        
+        // Reset UI
+        gameMessage.className = 'game-message';
+        gameMessage.textContent = '';
+        startButton.style.display = 'none';
+        restartButton.style.display = 'none';
+        
+        // Remove any existing game over screen
+        const existingModal = document.querySelector('.modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        dealCards();
+        startNextRound();
+    } finally {
+        loadingState.setLoading(false);
     }
-    
-    dealCards();
-    startNextRound();
-}
+});
 
 // Event listeners
 startButton.addEventListener('click', startGame);
 restartButton.addEventListener('click', startGame);
-showRulesButton.addEventListener('click', showRules);
-closeRulesButton.addEventListener('click', hideRules);
+showRulesButton.addEventListener('click', errorHandler(showRules));
+closeRulesButton.addEventListener('click', errorHandler(hideRules));
 
 // Close modal when clicking outside
 rulesModal.addEventListener('click', (e) => {
@@ -420,8 +475,10 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Initialize game
-showGameMessage("Click 'Start Game' to begin!");
+// Initialize game with error handling
+errorHandler(() => {
+    showGameMessage("Click 'Start Game' to begin!");
+})();
 
 // Add these functions after the existing functions
 function showRules() {
@@ -433,3 +490,85 @@ function hideRules() {
     rulesModal.classList.remove('slide-in');
     rulesModal.style.display = 'none';
 }
+
+// Performance optimization: Cache DOM elements
+const domElements = {
+    playerCard: document.getElementById('player-card'),
+    computerCard: document.getElementById('computer-card'),
+    playerCardsCount: document.getElementById('player-cards'),
+    computerCardsCount: document.getElementById('computer-cards'),
+    gameMessage: document.getElementById('game-message'),
+    startButton: document.getElementById('start-game'),
+    restartButton: document.getElementById('restart-game'),
+    rulesModal: document.getElementById('rules-modal'),
+    showRulesButton: document.getElementById('show-rules'),
+    closeRulesButton: document.getElementById('close-rules')
+};
+
+// Performance optimization: Use requestAnimationFrame for animations
+function animateElement(element, className, duration = 300) {
+    return new Promise(resolve => {
+        element.classList.add(className);
+        let start = null;
+        
+        function animate(timestamp) {
+            if (!start) start = timestamp;
+            const progress = timestamp - start;
+            
+            if (progress < duration) {
+                requestAnimationFrame(animate);
+            } else {
+                element.classList.remove(className);
+                resolve();
+            }
+        }
+        
+        requestAnimationFrame(animate);
+    });
+}
+
+// Add loading indicator styles
+const style = document.createElement('style');
+style.textContent = `
+    .loading {
+        cursor: wait !important;
+    }
+    
+    .loading .game-board {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+    
+    .loading .btn:not(:disabled) {
+        opacity: 0.7;
+        cursor: wait;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .loading::after {
+        content: '';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        margin: -20px 0 0 -20px;
+        border: 4px solid rgba(0,0,0,0.1);
+        border-top-color: var(--secondary-color);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        z-index: 9999;
+    }
+`;
+document.head.appendChild(style);
+
+// Export functions for testing
+window.gameState = gameState;
+window.DECK_DATA = DECK_DATA;
+window.shuffleDeck = shuffleDeck;
+window.dealCards = dealCards;
+window.computerPlay = computerPlay;
+window.checkGameOver = checkGameOver;

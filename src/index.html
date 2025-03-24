@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRUNFO - Card Game</title>
+    <title>TRUNFO - Top Trumps Game</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
@@ -14,32 +14,27 @@
             <div class="score-container">
                 <div class="player-score">
                     <i class="fas fa-user"></i>
-                    Player Cards: <span id="player-cards">0</span>
+                    <span>Cards: <span id="player-cards">0</span></span>
                 </div>
                 <div class="computer-score">
                     <i class="fas fa-robot"></i>
-                    Computer Cards: <span id="computer-cards">0</span>
+                    <span>Cards: <span id="computer-cards">0</span></span>
                 </div>
             </div>
         </header>
 
+        <div id="game-message" class="game-message"></div>
+
         <main class="game-board">
             <section class="player-area">
                 <h2><i class="fas fa-user"></i> Your Card</h2>
-                <div id="player-card" class="card">
-                    <!-- Card content will be dynamically inserted here -->
-                </div>
+                <div id="player-card" class="card"></div>
             </section>
-
             <section class="computer-area">
                 <h2><i class="fas fa-robot"></i> Computer's Card</h2>
-                <div id="computer-card" class="card card-back">
-                    <!-- Card content will be dynamically inserted here -->
-                </div>
+                <div id="computer-card" class="card card-back"></div>
             </section>
         </main>
-
-        <div id="game-message" class="game-message"></div>
 
         <div class="game-controls">
             <button id="start-game" class="btn">
@@ -48,38 +43,36 @@
             <button id="restart-game" class="btn" style="display: none;">
                 <i class="fas fa-redo"></i> Play Again
             </button>
+            <button id="show-rules" class="btn btn-secondary">
+                <i class="fas fa-book"></i> Rules
+            </button>
+            <button id="run-tests" class="btn btn-secondary" onclick="runTests()">
+                <i class="fas fa-vial"></i> Run Tests
+            </button>
         </div>
+    </div>
 
-        <footer class="game-footer">
-            <div class="rules-toggle">
-                <button id="show-rules" class="btn btn-secondary">
-                    <i class="fas fa-book"></i> How to Play
-                </button>
+    <div id="rules-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2><i class="fas fa-book"></i> How to Play</h2>
+            <div class="rules-content">
+                <ol>
+                    <li>The deck is split equally between you and the computer.</li>
+                    <li>Each round, you'll see your top card with its attributes.</li>
+                    <li>Choose an attribute to compare with the computer's card.</li>
+                    <li>The player with the higher value wins both cards.</li>
+                    <li>In case of a draw, the cards go to a draw pile.</li>
+                    <li>The winner of the next round gets the draw pile too.</li>
+                    <li>The game ends when one player has all the cards.</li>
+                </ol>
             </div>
-        </footer>
-
-        <!-- Rules Modal -->
-        <div id="rules-modal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h2><i class="fas fa-book"></i> How to Play TRUNFO</h2>
-                <div class="rules-content">
-                    <ol>
-                        <li>Click "Start Game" to begin a new game.</li>
-                        <li>Look at your card's attributes (Size, Speed, Lifespan, Strength).</li>
-                        <li>Click on an attribute you think will beat the computer's card.</li>
-                        <li>The player with the higher value wins both cards.</li>
-                        <li>In case of a draw, the cards go to a draw pile.</li>
-                        <li>The winner of the next round claims the draw pile.</li>
-                        <li>The game ends when one player collects all cards.</li>
-                    </ol>
-                </div>
-                <button id="close-rules" class="btn">
-                    <i class="fas fa-times"></i> Close
-                </button>
-            </div>
+            <button id="close-rules" class="btn">
+                <i class="fas fa-times"></i> Close
+            </button>
         </div>
     </div>
 
     <script src="js/game.js"></script>
+    <script src="tests/game.test.js"></script>
 </body>
 </html>
