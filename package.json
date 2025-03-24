@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mauriciobc/trunfo.git"
+    "url": "git+https://github.com/mauriciobc/Trunfo.git"
   },
   "keywords": [
     "game",
@@ -17,12 +17,16 @@
     "cards",
     "javascript"
   ],
-  "author": "mauriciobc",
+  "author": "",
   "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mauriciobc/Trunfo/issues"
+  },
+  "homepage": "https://mauriciobc.github.io/Trunfo",
   "devDependencies": {
     "clean-css": "^5.3.2",
     "gh-pages": "^6.1.1",
-    "html-minifier-terser": "^7.2.0",
+    "html-minifier": "^4.0.0",
     "terser": "^5.27.0"
   }
 } 
