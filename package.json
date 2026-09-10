@@ -37,6 +37,7 @@
     "homepage": "https://mauriciobc.github.io/Trunfo",
     "devDependencies": {
         "@eslint/js": "^9.39.5",
+        "@types/node": "^20.19.43",
         "clean-css": "^5.3.2",
         "eslint": "^9.39.4",
         "gh-pages": "^6.1.1",
