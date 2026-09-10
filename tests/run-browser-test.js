@@ -34,6 +34,14 @@ const PASS_TITLE = 'BROWSER-TESTS-PASSED';
 const FAIL_TITLE = 'BROWSER-TESTS-FAILED';
 
 /**
+ * How long to wait for a freshly spawned Chrome to answer on its DevTools port.
+ * A cold start on a CI runner (no warm page cache, first profile it has ever
+ * written) takes the better part of 15 seconds on its own, so the old
+ * 150 x 100ms window was a coin toss for whichever scenario ran first.
+ */
+const BROWSER_START_TIMEOUT_MS = 45000;
+
+/**
  * Every scenario that must pass. `page` defaults to the game harness and
  * `budget` is a real-time ceiling in milliseconds. `lang` pins the page's
  * language through `?lang=`, so a developer's own locale cannot change what a
@@ -123,20 +131,40 @@ async function runCase(browser, url, size, budget, shotPath) {
             `--remote-debugging-port=${port}`,
             'about:blank'
         ],
-        { stdio: 'ignore' }
+        // Chrome's own complaints are collected: "the browser did not start" on
+        // its own says nothing about why.
+        { stdio: ['ignore', 'ignore', 'pipe'] }
     );
 
+    let chromeLog = '';
+    if (chrome.stderr) {
+        chrome.stderr.on('data', (chunk) => {
+            chromeLog = (chromeLog + chunk).slice(-4000);
+        });
+    }
+
     try {
+        const startupDeadline = Date.now() + BROWSER_START_TIMEOUT_MS;
         let version = null;
-        for (let i = 0; i < 150; i++) {
+        while (Date.now() < startupDeadline) {
             try {
                 version = await (await fetch(`http://127.0.0.1:${port}/json/version`)).json();
                 break;
             } catch {
+                // It already gave up: waiting out the rest of the window helps
+                // nobody.
+                if (chrome.exitCode !== null) break;
                 await sleep(100);
             }
         }
-        if (!version) throw new Error('the browser did not start');
+        if (!version) {
+            const why = chromeLog.trim().split('\n').filter(Boolean).slice(-3).join(' | ');
+            throw new Error(
+                'the browser did not start (exit ' +
+                    chrome.exitCode +
+                    (why ? '): ' + why : ' with no output)')
+            );
+        }
 
         const ws = new WebSocket(version.webSocketDebuggerUrl);
         await new Promise((resolve, reject) => {
