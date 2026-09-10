@@ -343,8 +343,8 @@ visual report.
 
 ## 🛠️ Development
 
-Requires Node.js 20+ (only for the build and tests — the game itself needs
-nothing).
+Requires Node.js 22+ (only for the build and tests — the game itself needs
+nothing; the browser scenarios use the global `WebSocket` to drive Chrome).
 
 ```bash
 npm install

@@ -13,6 +13,9 @@
  *   node tests/run-browser-test.js [--dist] [--shots] [--browser=/path/to/chrome]
  *
  * Exits non-zero on failure and skips cleanly when no browser is installed.
+ * The DevTools connection uses the global `WebSocket`, so this needs Node 22+
+ * (`engines` in package.json); older Node is told so instead of failing every
+ * scenario with "WebSocket is not defined".
  */
 'use strict';
 
@@ -198,11 +201,23 @@ async function runCase(browser, url, size, budget, shotPath) {
     } finally {
         chrome.kill();
         await sleep(120);
-        fs.rmSync(profile, { recursive: true, force: true });
+        // Chrome's child processes can still be writing their profile as it is
+        // removed; giving up after the first attempt would shadow the real
+        // failure with an ENOTEMPTY.
+        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
     }
 }
 
 async function run() {
+    if (typeof WebSocket !== 'function') {
+        console.log(
+            'SKIP: the browser scenarios need Node 22+ (global WebSocket); this is ' +
+                process.version +
+                '. Re-run on a newer Node to exercise them.'
+        );
+        return 0;
+    }
+
     const browser = findBrowser();
     if (!browser) {
         console.log('SKIP: no Chromium/Chrome found; set CHROME_BIN to run the browser tests.');

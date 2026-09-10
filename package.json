@@ -35,6 +35,9 @@
         "url": "https://github.com/mauriciobc/Trunfo/issues"
     },
     "homepage": "https://mauriciobc.github.io/Trunfo",
+    "engines": {
+        "node": ">=22"
+    },
     "devDependencies": {
         "@eslint/js": "^9.39.5",
         "@types/node": "^20.19.43",
