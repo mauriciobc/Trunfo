@@ -20,22 +20,42 @@ without a web server.
 
 ## 🎲 How to play
 
-1. The themed deck is shuffled with Fisher-Yates and split into two equal
-   face-down piles.
-2. You always see your top card; the computer's card stays face down.
-3. Click a category on your card to compare it.
-4. The higher value wins both cards, which go to the bottom of the winner's pile
-   — except on a stat marked **↓**, where the lowest value wins.
-5. A draw sends both cards to a pot; the next round's winner claims the pot too.
-6. The round winner chooses next round's category.
-7. The game ends as soon as one player holds every card.
+The shipped rules are the printed **Super Trunfo** ones:
+
+1. The deck is shuffled and split equally; each side forms a face-down stack and
+   sees only its top card.
+2. Whoever holds the choice picks a category on their top card and announces it.
+   Both top cards are revealed and that category is compared.
+3. The higher value takes both cards, plus anything already on the table, and puts
+   them at the bottom of the winner's stack — except on a stat marked **↓**, where
+   the lowest value wins.
+4. On a tie the cards stay on the table and the same chooser picks a category from
+   their next card; whoever wins that comparison takes everything on the table.
+5. The winner of the round chooses next round's category.
+6. **The Super Trunfo card** beats every card in the deck, whatever the category
+   and whatever the values — unless it meets a **“1” card** (the first group,
+   1A–1D), which beats it and takes the round.
+7. The game ends when one player holds every card.
+
+A deck is a **Trunfo deck**: 32 cards in eight groups of four, coded **1A–1D,
+2A–2D, … 8A–8D**. The circle badge on a card carries its code, exactly as it does
+on the printed card. The grouping is what the deck is built from — a custom deck
+is written in whole groups of four, up to eight of them — and a group may mean
+something (the built-in decks group big cats, or performance sedans, together) or
+nothing at all. The “1” cards of rule 6 are therefore the four cards of the first
+group, whatever the deck's theme.
 
 ### Built-in decks
 
 | Deck                        | Theme              | Artwork     | Stats                                                       |
 | --------------------------- | ------------------ | ----------- | ----------------------------------------------------------- |
-| `awesome-animals` (default) | Awesome Animals    | emoji       | Size, Speed, Lifespan — 16 animals                          |
-| `electric-cars-2026`        | 2026 Electric Cars | photographs | Range, Power, Top speed, Fast charge, 0–100 km/h ↓ — 16 EVs |
+| `awesome-animals` (default) | Awesome Animals    | emoji       | Size, Speed, Lifespan — 32 animals (8 groups of 4)          |
+| `electric-cars-2026`        | 2026 Electric Cars | photographs | Range, Power, Top speed, Fast charge, 0–100 km/h ↓ — 32 EVs |
+
+Each deck ships its own Super Trunfo card: the **Crocodile** (8D) in the animals
+deck — beaten only by the big cats of 1A–1D — and the **Tesla Cybertruck
+Cyberbeast** (7C) in the car deck, beaten only by the performance sedans of the
+first group. A deck of your own can mark any one card the same way.
 
 Most stats are "higher is better". A deck can mark a stat as "lower is better" —
 a 0–100 time, a price, a lap time — and the engine then awards the round to the
@@ -46,8 +66,9 @@ smaller number; the card shows a small **↓** beside it. The car deck's
 > manufacturer and press numbers, and they vary by market, trim, wheel size and
 > test cycle. Treat that deck as sample content, not a specification sheet.
 
-The car deck's photographs are bundled with the app in `src/assets/cars/`. They
-come from [Wikimedia Commons](https://commons.wikimedia.org/) under the licences
+The car deck's thirty-two photographs are bundled with the app in
+`src/assets/cars/`. They come from
+[Wikimedia Commons](https://commons.wikimedia.org/) under the licences
 listed in [`src/assets/cars/CREDITS.md`](src/assets/cars/CREDITS.md) — mostly
 CC BY-SA 4.0 — and each was downscaled to 640px and stripped of metadata. **Keep
 that file with the deck if you redistribute it**; the licences require
@@ -85,12 +106,15 @@ round is recorded in the round log and reported in the match summary
 
 ### Round-limit backstop
 
-The engine keeps a **150-round** cap so that a game cannot run forever; if it is
-reached, the larger pile wins. With the mixed AI it still usually stays unused —
-2,000 seeded games on the animals deck ended by emptying a pile 100% of the time
-(averaging 19.8 rounds), and on the five-stat car deck 93% did, the rest being
-decided on pile size at the cap. Pass `{ roundLimit: 0 }` to `createGame` to
-remove it.
+The engine keeps a **300-round** cap so that a game cannot run forever; if it is
+reached, the larger pile wins and the game-over panel says so. It is a backstop,
+not a rule: with the shipped rules and mixed AI, 2,000 seeded games on the 32-card
+animals deck ended by emptying a pile 96.5% of the time (averaging 97 rounds), and
+the five-stat car deck 70.5% (averaging 170). The Super Trunfo card lengthens both
+— a card that wins every round except against a “1” card keeps the lead swinging —
+and the car deck's figures are close enough that its games run long. The cap was
+150 for the 16-card deck and moved with the deck; `{ roundLimit: 0 }` to
+`createGame` removes it.
 
 ### Controls
 
@@ -149,18 +173,21 @@ catalog test will name any key you miss.
 ## 🃏 Creating decks
 
 `src/create.html` is a deck creator. A deck has a name, up to **five stats**
-(each with a unit and a comparison rule) and any number of cards; every card
-needs a name and a number for each stat. Cards can also carry **artwork**: pick
-an image and it is downscaled to a 640px edge and re-encoded before it is stored,
-so a 5 MB photo does not end up in the database.
+(each with a unit and a comparison rule) and whole **groups of four cards** — 1A–1D
+up to 8A–8D, so between 4 and 32 cards; every card needs a name and a number for
+each stat. Cards can also carry **artwork**: pick an image and it is downscaled to
+a 640px edge and re-encoded before it is stored, so a 5 MB photo does not end up
+in the database.
 
-| Step            | What happens                                                                                                                 |
-| --------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Name and stats  | Each stat takes a unit and a rule — **Highest wins** (the default) or **Lowest wins** for a time, price or weight.           |
-| Cards           | A table: one row per card, one column per stat, plus an artwork cell with a thumbnail, an "Image" picker and a clear button. |
-| Save            | Validated and written to the local database; the deck then appears in the game's deck picker.                                |
-| Saved decks     | Load one back into the form, delete it, or export it.                                                                        |
-| Export / import | JSON, with the artwork inlined so a file is self-contained. Import accepts one deck or an array.                             |
+| Step            | What happens                                                                                                                                                       |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Name and stats  | Each stat takes a unit and a rule — **Highest wins** (the default) or **Lowest wins** for a time, price or weight.                                                 |
+| Cards           | A table in groups of four, each row carrying its code (1A, 1B…): one column per stat, plus an artwork cell with a thumbnail, an "Image" picker and a clear button. |
+| Groups          | **Add a group of four** appends four rows; the ✕ on a group header removes that whole group. A deck is never edited in loose cards.                                |
+| Super Trunfo    | One checkbox per row marks the deck's Super Trunfo card; ticking one clears the rest, since a deck holds one.                                                      |
+| Save            | Validated and written to the local database; the deck then appears in the game's deck picker.                                                                      |
+| Saved decks     | Load one back into the form, delete it, or export it.                                                                                                              |
+| Export / import | JSON, with the artwork inlined so a file is self-contained. Import accepts one deck or an array.                                                                   |
 
 ### Storage
 
@@ -178,15 +205,19 @@ pruned when a deck is deleted and when the creator opens. If a browser refuses
 IndexedDB the store falls back to memory and says so instead of failing silently.
 
 Decks created by the pre-database build (in `localStorage`) are migrated into the
-database on first load.
+database on first load. A legacy deck that does not fit the current layout — not
+a whole number of groups of four, or more than 32 cards — cannot be carried over;
+the creator reports how many were left behind rather than dropping them in
+silence.
 
 ## 🎨 Card design & motion
 
 Cards are modelled on the classic Brazilian **Trunfo** layout: a coloured card
-rim, a numbered circle badge, a yellow title banner, a framed art window, a
-bold name plate and a ruled yellow stats table — plus a starburst seal reading
-**Round win** on the card that took the round. (The engine can also render a
-gold **Super Trunfo** seal for a trump card; the shipped deck has none.)
+rim, a numbered circle badge carrying the card's code (1A…8D), a yellow title
+banner, a framed art window, a bold name plate and a ruled yellow stats table —
+plus a starburst seal reading **Round win** on the card that took the round. The
+deck's Super Trunfo card carries a gold **Super Trunfo** seal instead, all game
+long, and a round it decides says so in the status line.
 
 Every internal dimension of the card is a container-query unit, so the card
 stays legible from roughly 150px to 340px wide. The layout switches between two
@@ -308,15 +339,16 @@ eslint.config.js    Lint rules    |  tsconfig.json  Type checking (checkJs)
 The engine is deliberately separate from the UI. `engine.js` implements the
 documented functions — `createDeck`, `shuffleDeck`, `dealCards`, `compareCards`,
 `updateState`, `playRound`, `checkGameOver` — plus `summarise` for the match
-report, and is exercised without a browser. `decks.js` is likewise pure logic
-over a pluggable backend, so its whole surface is unit-testable in Node.
+report and `cardCode`, which numbers a deck 1A–8D, and is exercised without a
+browser. `decks.js` is likewise pure logic over a pluggable backend, so its whole
+surface is unit-testable in Node.
 
 ## 🧪 Testing
 
 ```bash
 npm run verify        # lint + type check + unit tests + build + browser tests
-npm test              # 57 engine + 40 deck-store + 27 localization tests
-npm run test:browser  # 20 DOM scenarios: game, deck creator, shaders, layout, language
+npm test              # 66 engine + 44 deck-store + 30 localization tests
+npm run test:browser  # 21 DOM scenarios: game, deck creator, shaders, layout, language
 npm run test:shots    # the same, saving screenshots to tests/screenshots/
 npm run measure:layout  # real chrome/overflow at every tested viewport
 npm run lint          # ESLint
@@ -326,14 +358,16 @@ npm run typecheck     # tsc --checkJs over the engine, store, i18n and their tes
 `npm run test:browser -- --only=customDeck` runs a single scenario, which is much
 quicker while iterating.
 
-The browser suite covers a one-round playthrough (card anatomy, animation
-classes, per-side highlight colours, modal accessibility), the draw/pot path, a
-degenerate one-card deck that is over at deal time, a custom five-stat deck with
-artwork read back from IndexedDB, a **lower-wins** stat that resolves to the
-smaller value and marks itself on the card, a full 16-card game played to
-completion, the deck-creator form end to end (including downscaling a picked
-image and saving a comparison rule), the 2026 Electric Cars deck, and layout
-overflow at seven viewport sizes from 480×900 to 1600×1200.
+The browser suite covers a one-round playthrough (card anatomy, the code on the
+badge, animation classes, per-side highlight colours, modal accessibility), the
+draw/pot path, a degenerate one-card deck that is over at deal time, a custom
+five-stat deck with artwork read back from IndexedDB, a **lower-wins** stat that
+resolves to the smaller value and marks itself on the card, the Super Trunfo rule
+played both ways round (the trump taking a round, and a “1” card taking it off the
+trump), a full 32-card game played to completion, the deck-creator form end to end
+(groups of four, a picked image downscaled, a comparison rule and the trump mark
+saved), the 2026 Electric Cars deck and its 32-card layout, and layout overflow at
+seven viewport sizes from 480×900 to 1600×1200.
 
 The scenarios are asynchronous, so the runner drives the page over the DevTools
 protocol and waits for it to report rather than screenshotting a fixed moment.
@@ -379,10 +413,12 @@ original brief defers full mobile support.
 
 ## 📐 Spec compliance notes
 
-The shipped game is the plain "highest value wins" game from
-`Product-Documentation.md`. The deck contains no Super Trunfo card, and the AI is
-the one documented judgement call: see **How the computer plays** above — instead
-of always playing the first attribute, it draws a mode per round.
+The shipped game follows the printed **Super Trunfo** rules: the deck's structure
+(32 cards, eight groups of four, 1A–1D … 8A–8D), the tie handling (the cards stay
+on the table and the same chooser picks again from their next card), the Super
+Trunfo card and the “1” cards that beat it, and the end condition (all cards in
+one hand). `Product-Documentation.md` describes a plainer game — one deck, highest
+value wins — and the differences are listed below.
 
 What remains is either an additive feature or a documented judgement call:
 
@@ -392,18 +428,41 @@ What remains is either an additive feature or a documented judgement call:
   additive: `DIRECTIONS` in `src/js/engine.js` defaults every unnamed stat to the
   documented rule, and a hand-written deck that omits `directions` plays exactly
   as before. The car deck uses it for its 0–100 km/h time.
-- **Round-limit backstop.** `DEFAULT_ROUND_LIMIT` in `src/js/engine.js` (150) is
-  a backstop for a game that cannot end; with the mixed AI it fires for about 7%
-  of car-deck games and never on the animals deck (2,000 seeds each). It exists
-  so a deck cannot create a game that never ends; `{ roundLimit: 0 }` removes it.
+- **Round-limit backstop.** `DEFAULT_ROUND_LIMIT` in `src/js/engine.js` (300) is
+  a backstop for a game that cannot end; with the shipped rules it fires for about
+  30% of car-deck games and 3.5% of animals-deck games (2,000 seeds each). It
+  exists so a deck cannot create a game that never ends; `{ roundLimit: 0 }`
+  removes it.
+- **Super Trunfo and the “1” cards.** The printed rule is implemented as printed:
+  a marked card beats every card whatever the category, and a “1” card — the first
+  group, 1A–1D — beats it. `compareCards` in `src/js/engine.js` owns that;
+  `src/js/deck.js` says which card in each shipped deck carries the mark, and the
+  deck creator offers it per card. One trump per deck is enforced by
+  `src/js/decks.js`.
+- **Ties.** The printed rule leaves the tied cards on the table and has the same
+  chooser pick again from their next card; the winner of that comparison takes
+  everything on the table. That is what the engine does — the "pot" is the cards
+  on the table, and it only changes hands when a round is won. `Product-
+Documentation.md` phrased the same idea as a pot claimed by the next round's
+  winner, which is why the interface still calls it a pot.
+- **Deck size and backstop scaling.** `Product-Documentation.md` does not state a
+  deck size; the shipped decks (and everything the creator builds) use the printed
+  layout of 32 cards in eight groups of four, so the round-limit backstop moved
+  from 150 to 300 with the deck.
 - **Full reveal.** The comparison is required to reveal the computer's chosen
   value; the UI reveals the whole card and highlights the compared stat. That is
   a superset of the requirement, not a contradiction, and it matches how the
   physical game is played.
+- **Deck shape.** The documents describe a themed deck but not its size. The
+  shipped decks — and every deck the creator will build — are the classic Trunfo
+  layout: 32 cards in eight groups of four, 1A–1D … 8A–8D, with the code on the
+  card's badge. `CARDS_PER_GROUP` and `MAX_GROUPS` live in `src/js/engine.js`,
+  which mints the code from the card's position; `src/js/decks.js` enforces the
+  same shape on a player's deck, so the two cannot disagree.
 - **Deck creation and artwork.** Custom decks, the five-stat limit and card
   pictures are additions the documents do not describe. They change no rule: a
-  custom deck plays by exactly the same rules as the built-in one. The limit is
-  `MAX_STATS` in `src/js/decks.js`.
+  custom deck plays by exactly the same rules as the built-in one. The limits are
+  `MAX_STATS` and `MAX_GROUPS` in `src/js/decks.js`.
 - **How the computer picks.** `Backend-Structure.md` says "the AI selects the
   first attribute". That is now one of three modes, and the mode is drawn at
   random for each round the computer leads — see **How the computer plays**. The
@@ -421,14 +480,11 @@ What remains is either an additive feature or a documented judgement call:
 - **Artwork.** Without bundled image assets the built-in deck uses emoji, so it
   looks different across platforms' emoji fonts. Custom decks can carry real
   pictures. `cardFace()` in `ui.js` picks between the two.
-- **Undefined behaviour.** The documents do not say who chooses after a draw,
-  what happens when a draw empties a pile, or how to finish an unendable game.
-  The engine uses the standard Top Trumps reading and records a `state.reason`
-  (`pile-empty`, `round-limit` or `stalemate`) for each ending.
-
-The engine still supports an opt-in Super Trunfo card (`superTrunfo: true` on a
-deck entry) because it is a real Trunfo rule and costs about fifteen lines. It
-is off everywhere by default.
+- **Undefined behaviour.** The printed rules do cover the tie (the cards stay on
+  the table and the same chooser picks again), but not who chooses after a tie
+  that empties a pile, or how to finish a game that cannot end. The engine uses
+  the standard Top Trumps reading and records a `state.reason` (`pile-empty`,
+  `round-limit` or `stalemate`) for each ending.
 
 There is no backend. `Backend-Structure.md` sketches future `/start-game`,
 `/select-category` and `/game-state` endpoints; the engine's pure functions are

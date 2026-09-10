@@ -14,7 +14,7 @@
         <meta
             name="description"
             data-i18n-content="app.createDescription"
-            content="Create your own Trunfo deck: name it, choose up to five stats, and fill in the cards."
+            content="Create your own Trunfo deck: name it, choose up to five stats, and fill in the cards in groups of four."
         />
         <title data-i18n="app.createTitle">Trunfo — Deck creator</title>
         <link rel="stylesheet" href="../src/css/styles.css" />
@@ -86,13 +86,19 @@
                             <span data-i18n="create.step3">3 · Cards</span>
                             <span class="panel__count" id="card-count">0</span>
                         </h2>
-                        <button id="add-card" class="btn btn--ghost" type="button" data-i18n="create.addCard">
-                            Add card
+                        <button
+                            id="add-group"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.addGroup"
+                        >
+                            Add a group of four
                         </button>
                     </div>
                     <p class="hint" data-i18n="create.cardsHint">
-                        Every card needs a name and a number for each stat. An icon is optional — paste an
-                        emoji.
+                        Cards come in groups of four, lettered A–D: 1A–1D, then 2A–2D, up to 8A–8D — no more
+                        than eight groups. Every card needs a name and a number for each stat. An icon is
+                        optional — paste an emoji.
                     </p>
                     <div class="table-wrap">
                         <table id="cards" class="cards-table"></table>
@@ -249,8 +255,26 @@
                     return all('#stats .stat-row').length;
                 }
 
+                /** The card rows only: a group header is a row too, but holds no card. */
                 function cardRows() {
-                    return all('#cards tbody tr');
+                    return all('#cards tbody tr').filter(function (row) {
+                        return !row.classList.contains('cards-table__group');
+                    });
+                }
+
+                function groupRows() {
+                    return all('#cards tbody tr.cards-table__group');
+                }
+
+                /** The code cell (`1A`, `2C`, …) rendered on a card row. */
+                function cardCode(rowIndex) {
+                    var cell = cardRows()[rowIndex].querySelector('.card-code');
+                    return cell ? cell.textContent : '';
+                }
+
+                function groupLabel(rowIndex) {
+                    var head = groupRows()[rowIndex];
+                    return head ? head.querySelector('th').textContent : '';
                 }
 
                 function numberInputs(rowIndex) {
@@ -263,6 +287,20 @@
 
                 function statUnits() {
                     return all('#stats [data-field="unit"]');
+                }
+
+                /** Every Super Trunfo box in the table, in card order. */
+                function trumpBoxes() {
+                    return all('#cards [data-field="superTrunfo"]');
+                }
+
+                /** A card list's trump marks as `0100`, for a failure message. */
+                function trumpMarks(cards) {
+                    return (cards || window.TrunfoBuilder.getDraft().cards)
+                        .map(function (card) {
+                            return card.superTrunfo ? 1 : 0;
+                        })
+                        .join('');
                 }
 
                 function customDecks(store) {
@@ -376,9 +414,12 @@
                             statLabels()[0].getAttribute('aria-label') === 'Nome da estatística 1',
                             statLabels()[0].getAttribute('aria-label'));
                         check('the table corners are translated',
-                            /Carta/.test(all('.cards-table__corner')[0].textContent) &&
-                            /Arte/.test(all('.cards-table__corner')[1].textContent),
-                            all('.cards-table__corner')[0].textContent + ' ' + all('.cards-table__corner')[1].textContent);
+                            /Código/.test(all('.cards-table__corner')[0].textContent) &&
+                            /Carta/.test(all('.cards-table__corner')[1].textContent) &&
+                            /Arte/.test(all('.cards-table__corner')[2].textContent),
+                            all('.cards-table__corner')[0].textContent + ' / ' +
+                                all('.cards-table__corner')[1].textContent + ' / ' +
+                                all('.cards-table__corner')[2].textContent);
                         check('the save button is translated',
                             byId('save').textContent.trim() === 'Salvar baralho',
                             byId('save').textContent);
@@ -401,6 +442,33 @@
                         check('the copied table header mirrors it',
                             all('.cards-table__stat')[0].textContent === 'Tamanho',
                             all('.cards-table__stat')[0].textContent);
+                        check('the built-in deck arrives as eight groups',
+                            cardRows().length === 32 && groupRows().length === 8,
+                            cardRows().length + ' rows / ' + groupRows().length + ' groups');
+                        check('the group header is translated',
+                            groupLabel(0) === 'Grupo 1 \u00b7 1A\u20131D', groupLabel(0));
+
+                        var trumpHeads = all('#cards thead tr')[0].querySelectorAll('th');
+                        check('the trump column is headed Super Trunfo',
+                            trumpHeads[trumpHeads.length - 1].textContent === 'Super Trunfo',
+                            trumpHeads[trumpHeads.length - 1].textContent);
+                        var trumpLabels = trumpBoxes();
+                        var boxLabel = trumpLabels[0].getAttribute('aria-label') || '';
+                        check('the accessible name of a trump box is translated',
+                            /marcar/i.test(boxLabel) && /Super Trunfo/.test(boxLabel), boxLabel);
+                        var marked = trumpLabels.filter(function (box) {
+                            return box.checked;
+                        });
+                        check('the copied deck arrives with one trump', marked.length === 1,
+                            String(marked.length));
+                        var trump = marked.length === 1 ? trumpLabels.indexOf(marked[0]) : -1;
+                        check('the built-in trump is the Crocodile',
+                            trump !== -1 && /^8d$/i.test(cardCode(trump)) &&
+                                cardRows()[trump].querySelector('[data-field="name"]').value ===
+                                    'Crocodilo',
+                            trump === -1 ? 'no box ticked' :
+                                cardCode(trump) + ' / ' +
+                                cardRows()[trump].querySelector('[data-field="name"]').value);
                     }).then(function () {
                         // And a refused save reports itself in Portuguese.
                         byId('clear').click();
@@ -431,11 +499,15 @@
                         check('decks are held in the local database',
                             store.describe().backend === 'indexeddb', store.describe().backend);
                         check('it starts with three stat rows', statRows() === 3, String(statRows()));
-                        check('it starts with two card rows', cardRows().length === 2,
+                        check('it starts with four card rows', cardRows().length === 4,
                             String(cardRows().length));
-                        check('the card counter counts the cards, not just the noun',
-                            byId('card-count').textContent === '2 cards',
+                        check('it starts with a single group', groupRows().length === 1,
+                            String(groupRows().length));
+                        check('the card counter counts groups and cards',
+                            byId('card-count').textContent === '1 group \u00b7 4 cards',
                             byId('card-count').textContent);
+                        check('the group header spells out its range',
+                            groupLabel(0) === 'Group 1 \u00b7 1A\u20131D', groupLabel(0));
                         check('add-stat is enabled below the limit', byId('add-stat').disabled === false);
                         check('the limit is advertised', /\/ 5$/.test(byId('stat-count').textContent),
                             byId('stat-count').textContent);
@@ -447,8 +519,9 @@
                         check('the counter reads 5 / 5', byId('stat-count').textContent === '5 / 5',
                             byId('stat-count').textContent);
                         check('every card row gains a value column',
-                            numberInputs(0) === 5 && numberInputs(1) === 5,
-                            numberInputs(0) + '/' + numberInputs(1));
+                            numberInputs(0) === 5 && numberInputs(1) === 5 &&
+                                numberInputs(2) === 5 && numberInputs(3) === 5,
+                            numberInputs(0) + '/' + numberInputs(3));
 
                         var labelInput = statLabels()[0];
                         labelInput.value = 'Length';
@@ -481,8 +554,9 @@
                             /lowest wins/i.test(all('.cards-table__rule')[0].textContent),
                             all('.cards-table__rule')[0].textContent);
 
-                        fillDeck(['T-Rex', 'Triceratops'],
-                            [[12, 8, 27, 35, 28], [9, 6, 24, 12, 30]], 'Harness Deck');
+                        fillDeck(['Tyrannosaurus', 'Stegosaurus', 'Velociraptor', 'Brachiosaurus'],
+                            [[12, 8, 27, 35, 28], [9, 6, 24, 12, 30], [7, 4, 14, 9, 45],
+                                [2, 1, 60, 3, 71]], 'Harness Deck');
                     }).then(function () {
                         // Attach artwork the same way a file picker does.
                         var cardId = window.TrunfoBuilder.getDraft().cards[0].id;
@@ -512,7 +586,8 @@
                             entry ? entry.theme : 'nothing stored');
                         check('it stores five stats', entry && entry.stats === 5,
                             entry ? String(entry.stats) : '-');
-                        check('it stores two cards', entry && entry.cards === 2);
+                        check('it stores four cards', entry && entry.cards === 4,
+                            entry ? String(entry.cards) : '-');
                         check('the artwork is recorded on the deck', entry && entry.images === 1,
                             entry ? String(entry.images) : '-');
                         var stored = store.get(entry.id);
@@ -549,7 +624,7 @@
                             check('the error names the offending card',
                                 /Card 1/.test(byId('errors').textContent),
                                 byId('errors').textContent.slice(0, 70));
-                            firstName.value = 'T-Rex';
+                            firstName.value = 'Tyrannosaurus';
                             fire(firstName);
                         });
                     }).then(function () {
@@ -561,7 +636,9 @@
                             units: {},
                             cards: [
                                 { name: 'One', image: PNG, attributes: { a: 1, b: 2, c: 3, d: 4, e: 5 } },
-                                { name: 'Two', attributes: { a: 5, b: 4, c: 3, d: 2, e: 1 } }
+                                { name: 'Two', attributes: { a: 5, b: 4, c: 3, d: 2, e: 1 } },
+                                { name: 'Three', attributes: { a: 2, b: 3, c: 4, d: 5, e: 1 } },
+                                { name: 'Four', attributes: { a: 3, b: 1, c: 5, d: 2, e: 4 } }
                             ]
                         });
                         byId('import-text').click();
@@ -570,6 +647,12 @@
                         }, 'the import').then(function () {
                             check('importing adds a deck', /Imported/.test(byId('deck-list').textContent),
                                 byId('deck-list').textContent);
+                            var imported = customDecks(store).filter(function (e) {
+                                return e.theme === 'Imported';
+                            })[0];
+                            check('the imported deck keeps its four cards',
+                                !!imported && imported.cards === 4,
+                                imported ? String(imported.cards) : 'not imported');
                             check('the imported artwork is stored too',
                                 store.imageStats().count === 2, String(store.imageStats().count));
                         });
@@ -585,6 +668,183 @@
                         byId('clear').click();
                         check('clearing empties the form', byId('deck-name').value === '');
                         check('clearing restores three stats', statRows() === 3, String(statRows()));
+                        check('clearing restores a single group',
+                            cardRows().length === 4 && groupRows().length === 1,
+                            cardRows().length + ' rows / ' + groupRows().length + ' groups');
+                    }).then(function () {
+                        /*
+                         * The Super Trunfo mark. A deck holds one, so ticking a
+                         * box clears the others — in the draft and on screen —
+                         * and a second one in an imported deck is refused.
+                         */
+                        var names = all('#cards thead tr')[0].querySelectorAll('th');
+                        check('the table ends in a Super Trunfo column',
+                            names[names.length - 1].textContent === 'Super Trunfo',
+                            names[names.length - 1].textContent);
+                        var units = all('#cards thead tr')[1].querySelectorAll('th');
+                        check('the Super Trunfo column needs no unit',
+                            units[units.length - 1].textContent === '',
+                            units[units.length - 1].textContent);
+                        check('the cards hint explains the trump',
+                            /Super Trunfo/.test(
+                                document.querySelector('[data-i18n="create.cardsHint"]').textContent));
+                        check('every card row offers a Super Trunfo box',
+                            trumpBoxes().length === cardRows().length && trumpBoxes().length === 4,
+                            trumpBoxes().length + ' boxes / ' + cardRows().length + ' rows');
+                        check('a fresh form marks no card',
+                            trumpBoxes().every(function (box) {
+                                return box.checked === false;
+                            }));
+
+                        var boxes = trumpBoxes();
+                        boxes[1].click();
+                        check('marking a card marks the draft card',
+                            window.TrunfoBuilder.getDraft().cards[1].superTrunfo === true,
+                            trumpMarks());
+                        check('marking a card ticks its box', boxes[1].checked === true);
+                        check('the other boxes stay clear',
+                            boxes[0].checked === false && boxes[2].checked === false &&
+                                boxes[3].checked === false);
+
+                        boxes[0].click();
+                        check('the mark moves to the card just ticked',
+                            window.TrunfoBuilder.getDraft().cards[0].superTrunfo === true &&
+                                window.TrunfoBuilder.getDraft().cards[1].superTrunfo === false,
+                            trumpMarks());
+                        check('the ticked box is the only one',
+                            trumpBoxes().filter(function (box) {
+                                return box.checked;
+                            }).length === 1 && boxes[0].checked === true);
+
+                        fillDeck(['Tyrannosaurus', 'Stegosaurus', 'Velociraptor', 'Brachiosaurus'],
+                            [[12, 8, 27], [9, 6, 24], [7, 4, 14], [2, 1, 60]], 'Trump Deck');
+                        byId('save').click();
+                        return waitFor(function () {
+                            return /Saved/.test(byId('status').textContent);
+                        }, 'the trump deck to save');
+                    }).then(function () {
+                        var entry = customDecks(store).filter(function (e) {
+                            return e.theme === 'Trump Deck';
+                        })[0];
+                        check('the trump mark is saved with the deck',
+                            !!entry && store.get(entry.id).cards[0].superTrunfo === true,
+                            entry ? trumpMarks(store.get(entry.id).cards) : 'nothing stored');
+                        check('only the ticked card is saved as the trump',
+                            !!entry && store.get(entry.id).cards.slice(1).every(function (card) {
+                                return card.superTrunfo === false;
+                            }));
+
+                        byId('export-deck').click();
+                        check('the export carries the trump mark',
+                            /"superTrunfo": true/.test(byId('json').value),
+                            byId('json').value.slice(0, 60));
+
+                        byId('load').click();
+                        var reloaded = trumpBoxes();
+                        check('loading the deck ticks exactly one box',
+                            reloaded.filter(function (box) {
+                                return box.checked;
+                            }).length === 1, String(reloaded.length) + ' boxes');
+                        check('the loaded trump is the first card', reloaded[0].checked === true);
+
+                        reloaded[0].click();
+                        check('unchecking leaves no trump',
+                            trumpBoxes().every(function (box) {
+                                return box.checked === false;
+                            }) && window.TrunfoBuilder.getDraft().cards.every(function (card) {
+                                return card.superTrunfo === false;
+                            }), trumpMarks());
+                        byId('save').click();
+                        return waitFor(function () {
+                            return /Saved/.test(byId('status').textContent);
+                        }, 'the deck without a trump').then(function () {
+                            check('a deck with no trump still saves', true,
+                                byId('status').textContent);
+                        });
+                    }).then(function () {
+                        // Two trumps in one deck: refused, and never listed.
+                        byId('json').value = JSON.stringify({
+                            theme: 'TwoTrumps',
+                            attributes: ['a', 'b', 'c'],
+                            labels: {},
+                            units: {},
+                            cards: [
+                                { name: 'One', superTrunfo: true, attributes: { a: 1, b: 2, c: 3 } },
+                                { name: 'Two', superTrunfo: true, attributes: { a: 3, b: 2, c: 1 } },
+                                { name: 'Three', attributes: { a: 2, b: 3, c: 1 } },
+                                { name: 'Four', attributes: { a: 3, b: 1, c: 2 } }
+                            ]
+                        });
+                        byId('import-text').click();
+                        return waitFor(function () {
+                            return /one card can be the Super Trunfo/.test(
+                                byId('json-status').textContent);
+                        }, 'the two-trump import').then(function () {
+                            check('a deck with two trumps is refused',
+                                /hint--error/.test(byId('json-status').className),
+                                byId('json-status').textContent.slice(0, 90));
+                            check('the refused deck is not listed',
+                                !/TwoTrumps/.test(byId('deck-list').textContent),
+                                byId('deck-list').textContent.replace(/\s+/g, ' ').slice(0, 80));
+                        });
+                    }).then(function () {
+                        /*
+                         * Group editing, deliberately last: the checks above own
+                         * the saved decks, and the ceiling below leaves the form
+                         * at eight groups (32 cards). A cleared form is a fresh
+                         * single group, which is where this starts.
+                         */
+                        check('the first card of a group is coded 1A', cardCode(0) === '1A',
+                            cardCode(0));
+                        check('the fourth card of a group is coded 1D', cardCode(3) === '1D',
+                            cardCode(3));
+
+                        var only = document.querySelector('[data-remove-group="1"]');
+                        check('the single group offers a remove button', only !== null);
+                        check('removing is disabled while one group is left',
+                            only.disabled === true);
+
+                        byId('add-group').click();
+                        check('adding a group appends four card rows', cardRows().length === 8,
+                            String(cardRows().length));
+                        check('the counter counts the new group too',
+                            byId('card-count').textContent === '2 groups \u00b7 8 cards',
+                            byId('card-count').textContent);
+                        check('the second group gets its own header row',
+                            groupRows().length === 2 &&
+                                groupLabel(1) === 'Group 2 \u00b7 2A\u20132D',
+                            groupRows().length + ' headers / ' + groupLabel(1));
+                        check('the new rows carry the 2A-2D codes',
+                            cardCode(4) === '2A' && cardCode(5) === '2B' &&
+                                cardCode(6) === '2C' && cardCode(7) === '2D',
+                            [cardCode(4), cardCode(5), cardCode(6), cardCode(7)].join(' '));
+
+                        var second = document.querySelector('[data-remove-group="2"]');
+                        check('a second group can be removed', second !== null && second.disabled === false);
+                        second.click();
+                        check('removing a group splices out its four rows', cardRows().length === 4,
+                            String(cardRows().length));
+                        check('the counter returns to a single group',
+                            byId('card-count').textContent === '1 group \u00b7 4 cards',
+                            byId('card-count').textContent);
+                        check('the removed group leaves no button behind',
+                            document.querySelector('[data-remove-group="2"]') === null);
+                    }).then(function () {
+                        // The ceiling: eight groups is the whole deck.
+                        var clicks = 0;
+                        while (byId('add-group').disabled === false && clicks < 12) {
+                            byId('add-group').click();
+                            clicks += 1;
+                        }
+                        check('adding groups stops at the ceiling', clicks === 7 && byId('add-group').disabled === true,
+                            clicks + ' clicks / disabled=' + byId('add-group').disabled);
+                        check('the form holds the full eight groups', cardRows().length === 32,
+                            String(cardRows().length));
+                        check('every group has a header row', groupRows().length === 8,
+                            String(groupRows().length));
+                        check('the counter reads the ceiling',
+                            byId('card-count').textContent === '8 groups \u00b7 32 cards',
+                            byId('card-count').textContent);
                     });
                 }
 

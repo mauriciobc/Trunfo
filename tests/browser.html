@@ -276,6 +276,7 @@ running</pre>
                         sawFlip = false,
                         sawStatFill = false;
                     var sawBadge = false,
+                        badgeText = '',
                         sawBanner = false,
                         sawArt = false,
                         sawStats = false,
@@ -291,7 +292,11 @@ running</pre>
                             return;
                         }
 
-                        if (document.querySelector('.badge__text')) sawBadge = true;
+                        var badge = document.querySelector('.badge__text');
+                        if (badge) {
+                            sawBadge = true;
+                            badgeText = badge.textContent;
+                        }
                         if (document.querySelector('.banner__text')) sawBanner = true;
                         if (document.querySelector('.face__art')) sawArt = true;
                         if (document.querySelectorAll('.attrs .attr').length >= 2) sawStats = true;
@@ -389,7 +394,7 @@ running</pre>
                             byId('difficulty') === null && byId('deck-select') !== null
                         );
                         check(
-                            'the default game shows no Super Trunfo seal',
+                            'a deck with no trump card shows no Super Trunfo seal',
                             document.querySelector('.face.is-super') === null
                         );
                         check(
@@ -403,7 +408,13 @@ running</pre>
                         check('start button is hidden after game over', byId('start-btn').hidden === true);
                         check('restart button is available', byId('restart-btn').hidden === false);
 
-                        check('card renders a numbered badge', sawBadge);
+                        // The badge is the card's code — its group and letter. The
+                        // two-card deck here is 1A/1B, so the group is always 1.
+                        check(
+                            'card renders a numbered badge',
+                            sawBadge && /^1[A-D]$/.test(badgeText),
+                            JSON.stringify(badgeText)
+                        );
                         check('card renders the theme banner', sawBanner);
                         check('card renders a framed art window', sawArt);
                         check('card renders the stats table rows', sawStats);
@@ -543,11 +554,10 @@ running</pre>
 
                 /* ------------------------------------------------------------ long */
 
-                // The real 16-card deck played to completion at fast speed.
+                // The real 32-card deck played to completion at fast speed.
                 function longGame() {
                     var maxRoundsSeen = 0;
                     var iterations = 0;
-                    var sawSuperFace = false;
 
                     function tick() {
                         var state = window.TrunfoUI.getState();
@@ -557,7 +567,6 @@ running</pre>
                         }
 
                         if (state.round > maxRoundsSeen) maxRoundsSeen = state.round;
-                        if (document.querySelector('.face.is-super')) sawSuperFace = true;
 
                         if (state.phase === 'gameover') {
                             if (!overlayVisible()) {
@@ -585,7 +594,7 @@ running</pre>
                         var counts = Engine.getCardCounts(state);
 
                         check(
-                            'a full 16-card game finishes',
+                            'a full 32-card game finishes',
                             state.phase === 'gameover',
                             String(state.phase)
                         );
@@ -595,21 +604,42 @@ running</pre>
                             state.round + ' / ' + state.roundLimit
                         );
                         check('a winner is recorded', state.winner !== null, String(state.winner));
-                        check(
-                            'the shipped deck ends with one player holding every card',
+                        // The match ends either by emptying a pile — the winner
+                        // then holds all 32 — or on the round-limit backstop,
+                        // which decides on pile size. The pinned adaptive chooser
+                        // is deterministic, and a deterministic chooser can cycle,
+                        // which is exactly what the backstop is for.
+                        var wholeDeck =
                             state.winner === 'draw' ||
-                                (state.winner === 'player' ? counts.player : counts.computer) === 16,
+                            (state.winner === 'player' ? counts.player : counts.computer) === 32;
+                        check(
+                            'the deck ends by emptying a pile, or on the round-limit backstop',
+                            state.reason === 'pile-empty'
+                                ? wholeDeck
+                                : state.reason === 'round-limit' && state.round >= state.roundLimit,
                             state.reason + ' :: ' + JSON.stringify(counts)
                         );
-                        check('the shipped deck deals no Super Trunfo card', !sawSuperFace);
                         check(
                             'the reason is recorded',
                             typeof state.reason === 'string',
                             String(state.reason)
                         );
+                        // The trump rule is played out in the superTrunfo case;
+                        // here the shipped deck only has to carry its one trump.
+                        var shipped = Engine.createDeck(
+                            window.TrunfoDeck.getTheme(window.TrunfoDeck.DEFAULT_THEME_ID)
+                        );
+                        var trumps = shipped.filter(function (card) {
+                            return Engine.isSuperTrunfo(card);
+                        });
+                        check(
+                            'the shipped deck carries its one Super Trunfo card',
+                            trumps.length === 1,
+                            trumps.length + ' trump card(s)'
+                        );
                         check(
                             'every card is accounted for',
-                            counts.player + counts.computer + counts.drawPile === 16,
+                            counts.player + counts.computer + counts.drawPile === 32,
                             JSON.stringify(counts)
                         );
                         check(
@@ -836,6 +866,28 @@ running</pre>
                                             bite_force: 12,
                                             age: 30
                                         }
+                                    },
+                                    {
+                                        name: 'Velociraptor',
+                                        imageId: stored.image.id,
+                                        attributes: {
+                                            length: 2,
+                                            weight: 0.08,
+                                            speed: 40,
+                                            bite_force: 3,
+                                            age: 15
+                                        }
+                                    },
+                                    {
+                                        name: 'Stegosaurus',
+                                        imageId: stored.image.id,
+                                        attributes: {
+                                            length: 9,
+                                            weight: 5,
+                                            speed: 12,
+                                            bite_force: 8,
+                                            age: 25
+                                        }
                                     }
                                 ]
                             });
@@ -908,9 +960,23 @@ running</pre>
                                 'the artwork renders as an image, not an emoji',
                                 document.querySelector('#player-card .face__icon') === null
                             );
+                            var top = state.playerHand[0];
+                            var badge = document.querySelector('#player-card .badge__text');
                             check(
-                                'a one-card pile reads in the singular',
-                                /(^|\s)1 card(\s|$)/.test(
+                                'the badge shows the code of the card in play',
+                                !!top && !!badge && badge.textContent === top.code,
+                                (badge ? badge.textContent : 'no badge') +
+                                    ' vs ' +
+                                    (top ? top.code : 'no card')
+                            );
+                            check(
+                                'a code is a group number and a letter',
+                                !!top && /^[1-8][A-D]$/.test(top.code),
+                                top ? top.code : 'no card'
+                            );
+                            check(
+                                'a four-card deck deals two cards a side',
+                                /(^|\s)2 cards(\s|$)/.test(
                                     document.querySelector('.side--player .counter').textContent
                                 ),
                                 JSON.stringify(document.querySelector('.side--player .counter').textContent)
@@ -992,6 +1058,25 @@ running</pre>
                                 options
                             );
 
+                            // The shipped decks are full Trunfo decks: 32 cards
+                            // in eight groups of four, coded 1A–1D … 8A–8D.
+                            var built = Engine.createDeck(carDeck);
+                            check(
+                                'the car deck is a full 32-card deck',
+                                built.length === 32 && built[0].code === '1A' && built[31].code === '8D',
+                                built.length +
+                                    ' cards, ' +
+                                    built[0].code +
+                                    '\u2026' +
+                                    built[built.length - 1].code
+                            );
+                            var carBadge = document.querySelector('#player-card .badge__text');
+                            check(
+                                'a car card carries its group code',
+                                !!carBadge && /^[1-8][A-D]$/.test(carBadge.textContent),
+                                carBadge ? carBadge.textContent : 'no badge'
+                            );
+
                             // The photograph loads asynchronously, so wait for it.
                             var photo = document.querySelector('#player-card .face__photo');
                             check('the car card shows a photograph', photo !== null);
@@ -1012,6 +1097,167 @@ running</pre>
                         })
                         .catch(function (error) {
                             check('the car-deck case ran to completion', false, error.message);
+                            report();
+                        });
+                }
+
+                /* -------------------------------------------------- superTrunfo */
+
+                // The Super Trunfo rule played through the interface: the trump
+                // beats every card except a "1" card, which beats it. The hands
+                // are set directly (and the board repainted) so the round under
+                // test is the one on the table, whatever the deal would have been.
+                var SUPER_THEME = {
+                    id: 'super-browser',
+                    theme: 'Super Browser',
+                    attributes: ['size', 'speed'],
+                    units: { size: 'cm', speed: 'km/h' },
+                    cards: [
+                        { name: 'One', attributes: { size: 10, speed: 10 }, icon: '🦁' },
+                        { name: 'Two', attributes: { size: 20, speed: 20 }, icon: '🐘' },
+                        { name: 'Three', attributes: { size: 30, speed: 30 }, icon: '🐆' },
+                        { name: 'Four', attributes: { size: 40, speed: 40 }, icon: '🦒' },
+                        {
+                            name: 'Trump',
+                            attributes: { size: 1, speed: 1 },
+                            icon: '🐊',
+                            superTrunfo: true
+                        },
+                        { name: 'Five', attributes: { size: 50, speed: 50 }, icon: '🦍' },
+                        { name: 'Six', attributes: { size: 60, speed: 60 }, icon: '🦘' },
+                        { name: 'Seven', attributes: { size: 70, speed: 70 }, icon: '🦓' }
+                    ]
+                };
+
+                function superTrunfo() {
+                    window.TrunfoUI.configure({ fast: true, ai: 'random' });
+                    var deck = Engine.createDeck(SUPER_THEME);
+                    var trump = deck[4];
+                    var one = deck[0];
+                    // "Ordinary" has to be outside the first group: every card of
+                    // group 1 is a "1" card, and those beat the trump.
+                    var ordinary = deck[5];
+
+                    check('the trump card opens the second group', trump.code === '2A', trump.code);
+                    check(
+                        'the "1" cards are the whole first group',
+                        deck.filter(function (card) {
+                            return Engine.isNumberOneCard(card);
+                        }).length === 4
+                    );
+
+                    // The rule, card against card: the trump takes everything
+                    // except a "1" card, and the values never decide it.
+                    var swept = Engine.compareCards(trump, ordinary, 'speed');
+                    check(
+                        'the trump beats an ordinary card whatever the values',
+                        swept.outcome === Engine.PLAYER &&
+                            swept.playerValue === 1 &&
+                            swept.trumpBeaten === false,
+                        JSON.stringify([swept.outcome, swept.playerValue, swept.computerValue])
+                    );
+
+                    /** Resolve once the board is not mid-deal and not mid-reveal. */
+                    function idle() {
+                        return new Promise(function (resolve) {
+                            var until = Date.now() + 3000;
+                            (function poll() {
+                                if (!byId('board').classList.contains('is-busy') || Date.now() > until) {
+                                    resolve();
+                                    return;
+                                }
+                                window.setTimeout(poll, 50);
+                            })();
+                        });
+                    }
+
+                    /** Every status line the board paints over the next `ms`. */
+                    function watchStatus(ms, latch) {
+                        return new Promise(function (resolve) {
+                            var seen = '';
+                            var until = Date.now() + ms;
+                            (function sample() {
+                                seen += ' ' + byId('message').textContent;
+                                if (latch && document.querySelector('#computer-card .face.is-super')) {
+                                    latch.computerSuper = true;
+                                }
+                                if (Date.now() >= until) {
+                                    resolve(seen);
+                                    return;
+                                }
+                                window.setTimeout(sample, 60);
+                            })();
+                        });
+                    }
+
+                    /** Put these two cards on the table and hand the turn over. */
+                    function table(playerCards, computerCards) {
+                        var state = window.TrunfoUI.getState();
+                        state.playerHand = playerCards;
+                        state.computerHand = computerCards;
+                        state.drawPile = [];
+                        state.turn = 'player';
+                        window.TrunfoUI.render();
+                    }
+
+                    // The player holds the trump against the computer's "1" card:
+                    // the "1" card takes the round, however the values fall.
+                    window.TrunfoUI.startGame(SUPER_THEME);
+                    idle()
+                        .then(function () {
+                            table([trump, deck[5]], [one, deck[6]]);
+                            var seal = document.querySelector('#player-card .seal__text');
+                            var badge = document.querySelector('#player-card .badge__text');
+                            check(
+                                'the trump card carries the Super Trunfo seal',
+                                !!seal && seal.textContent === 'Super Trunfo',
+                                seal ? seal.textContent : 'no seal'
+                            );
+                            check(
+                                'the trump card still shows its own code',
+                                !!badge && badge.textContent === '2A',
+                                badge ? badge.textContent : 'no badge'
+                            );
+
+                            window.TrunfoUI.onCategory('size');
+                            return watchStatus(1100).then(function (seen) {
+                                check(
+                                    'a "1" card takes the round off the Super Trunfo',
+                                    /beats the Super Trunfo/.test(seen) &&
+                                        /Computer wins the round/.test(seen),
+                                    seen.trim().slice(-140)
+                                );
+                                check(
+                                    'the round reports the two values it compared',
+                                    /Size: you 1 vs computer 10/.test(seen),
+                                    seen.trim().slice(-140)
+                                );
+
+                                // The other way round, in a fresh game: the player
+                                // holds the "1" card and the computer the trump.
+                                window.TrunfoUI.startGame(SUPER_THEME);
+                                return idle().then(function () {
+                                    table([one, deck[5]], [trump, deck[6]]);
+                                    var latch = {};
+                                    window.TrunfoUI.onCategory('size');
+                                    return watchStatus(1100, latch).then(function (second) {
+                                        check(
+                                            'the "1" card wins the round and says why',
+                                            /beats the Super Trunfo/.test(second) &&
+                                                /You win the round/.test(second),
+                                            second.trim().slice(-140)
+                                        );
+                                        check(
+                                            'the computer’s trump is revealed with its seal',
+                                            latch.computerSuper === true
+                                        );
+                                        report();
+                                    });
+                                });
+                            });
+                        })
+                        .catch(function (error) {
+                            check('the trump case ran to completion', false, error.message);
                             report();
                         });
                 }
@@ -1679,6 +1925,7 @@ running</pre>
                     solo: solo,
                     customDeck: customDeck,
                     cars: cars,
+                    superTrunfo: superTrunfo,
                     lowerWins: lowerWins,
                     paper: paper,
                     flip: flip,

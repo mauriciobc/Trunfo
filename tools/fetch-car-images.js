@@ -139,6 +139,102 @@ const CARS = [
         name: 'Xiaomi SU7 Max',
         query: 'Xiaomi SU7',
         preferred: 'File:(CHN-Shanghai) Private Xiaomi SU7 沪A7WE106 2024-11-24.jpg'
+    },
+    {
+        slug: 'tesla-cybertruck',
+        name: 'Tesla Cybertruck Cyberbeast',
+        query: 'Tesla Cybertruck',
+        preferred: 'File:Tesla Cybertruck Cyberbeast Satin Stealth Black - front.jpg'
+    },
+    {
+        slug: 'rivian-r1s',
+        name: 'Rivian R1S Quad',
+        query: 'Rivian R1S',
+        preferred: 'File:Rivian R1S Quad Motor Washington DC Metro Area, USA.jpg'
+    },
+    {
+        slug: 'kia-ev9',
+        name: 'Kia EV9 GT-Line',
+        query: 'Kia EV9 GT-Line',
+        preferred: 'File:Kia EV9 GT-Line 1X7A2506.jpg'
+    },
+    {
+        slug: 'volvo-ex30',
+        name: 'Volvo EX30 Twin',
+        query: 'Volvo EX30',
+        preferred: 'File:Volvo EX30 1X7A2476.jpg'
+    },
+    {
+        slug: 'polestar-2',
+        name: 'Polestar 2 Long Range Dual',
+        query: 'Polestar 2',
+        preferred: 'File:Polestar 2 (Facelift) IMG 9469.jpg'
+    },
+    {
+        slug: 'mercedes-eqe',
+        name: 'Mercedes EQE 350+',
+        query: 'Mercedes-Benz EQE 350+',
+        preferred: 'File:Mercedes-Benz V295 350+ 1X7A0313.jpg'
+    },
+    {
+        slug: 'bmw-ix',
+        name: 'BMW iX xDrive50',
+        query: 'BMW iX',
+        preferred: 'File:BMW iX 1X7A0304.jpg'
+    },
+    {
+        slug: 'genesis-gv60',
+        name: 'Genesis GV60 Performance',
+        query: 'Genesis GV60',
+        preferred: 'File:Genesis GV60 Auto Zuerich 2023 1X7A1140.jpg'
+    },
+    {
+        slug: 'bmw-i5',
+        name: 'BMW i5 M60',
+        query: 'BMW i5 M60',
+        preferred: 'File:BMW i5 M60 IMG 8779.jpg'
+    },
+    {
+        slug: 'audi-q8-e-tron',
+        name: 'Audi Q8 e-tron 55',
+        query: 'Audi Q8 e-tron',
+        preferred: 'File:Audi Q8 e-tron 55 quattro 1X7A6950.jpg'
+    },
+    {
+        slug: 'jaguar-i-pace',
+        name: 'Jaguar I-Pace EV400',
+        query: 'Jaguar I-Pace EV400',
+        preferred: 'File:2018 Jaguar I-Pace EV400 AWD Front.jpg'
+    },
+    {
+        slug: 'nissan-ariya',
+        name: 'Nissan Ariya e-4ORCE',
+        query: 'Nissan Ariya e-4ORCE',
+        preferred: 'File:Nissan Ariya B9 e-4ORCE Premier.jpg'
+    },
+    {
+        slug: 'volkswagen-id4',
+        name: 'Volkswagen ID.4 Pro 4MOTION',
+        query: 'Volkswagen ID.4 Pro AWD',
+        preferred: 'File:2023 Volkswagen ID.4 Pro AWD Statement Package in Pure Grey, Front Left, 05-14-2023.jpg'
+    },
+    {
+        slug: 'zeekr-001',
+        name: 'Zeekr 001 Long Range AWD',
+        query: 'Zeekr 001',
+        preferred: 'File:Moscow - Zeekr 001 - 2025-9.jpg'
+    },
+    {
+        slug: 'nio-et7',
+        name: 'Nio ET7 Long Range',
+        query: 'NIO ET7',
+        preferred: 'File:NIO ET7 1X7A6681.jpg'
+    },
+    {
+        slug: 'mg4',
+        name: 'MG4 XPOWER',
+        query: 'MG4 EV XPower',
+        preferred: 'File:MG4 EV XPower Automesse Ludwigsburg 2023 1X7A0027.jpg'
     }
 ];
 

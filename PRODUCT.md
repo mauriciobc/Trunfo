@@ -25,9 +25,16 @@ Played in short sessions in a desktop or phone browser. Decks ship with the app;
 ## Capabilities and Constraints
 
 - Static HTML/CSS/JS, no framework; scripts load as classic scripts (`src/js/`).
+- A deck is a Trunfo deck: 32 cards in eight groups of four, 1A–1D … 8A–8D, and
+  the numbered badge on the card carries that code. Both shipped decks are full
+  32-card decks; a custom deck is built in whole groups of four, up to eight.
 - Decks and card artwork persist in a local IndexedDB database (`trunfo`) only; no accounts, no backend.
+- The printed Super Trunfo rules: a tie leaves the cards on the table for the same
+  chooser to play again from their next card, and the deck's one Super Trunfo card
+  beats every card whatever the category — unless it meets a "1" card (1A–1D),
+  which beats it.
 - No difficulty setting: the computer draws one of three modes per round it leads — a random stat, its best stat, or its best normalised stat (see `README.md` → "How the computer plays"); optional fast-reveal toggle.
-- Deck creator page (`create.html`): build custom decks (up to 20), stats with highest/lowest-wins rules, emoji or image artwork, JSON export/import.
+- Deck creator page (`create.html`): build custom decks (up to 20), stats with highest/lowest-wins rules, one card markable as the deck's Super Trunfo, emoji or image artwork, JSON export/import.
 - Two languages: English and Brazilian Portuguese. The language follows the browser (or `?lang=`) and is switchable from the topbar; built-in deck content is translated, player-written deck text is left alone.
 - Deliberately undecided: PWA/offline capability — the user confirmed it as a later addition; do not assume it is shipped.
 

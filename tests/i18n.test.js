@@ -120,6 +120,7 @@
                 'game.attr.compare',
                 'summary.none',
                 'create.emptyCell',
+                'create.tableSuperTrunfo',
                 'create.storageIndexedDb'
             ];
             const shared = Object.keys(catalogs_.en).filter(function (key) {
@@ -443,7 +444,7 @@
             const theme = Deck.localizeTheme(Deck.getTheme('awesome-animals'), 'pt-BR');
             const state = Engine.createGame(theme, { roundLimit: 0 });
             equal(state.attributeKeys.length, 3, 'the three stats survived');
-            equal(state.playerHand.length + state.computerHand.length, 16, 'all 16 cards dealt');
+            equal(state.playerHand.length + state.computerHand.length, 32, 'all 32 cards dealt');
             assert(state.playerHand[0].name, 'cards keep a name');
         });
     }
@@ -471,6 +472,18 @@
                         return /no máximo 5/.test(error);
                     }),
                     'the five-stat limit is translated: ' + tooMany.join(' | ')
+                );
+
+                const partial = Decks.validate({
+                    theme: 'T',
+                    attributes: ['a'],
+                    cards: [{ name: 'Um', attributes: { a: 1 } }]
+                });
+                assert(
+                    partial.some(function (error) {
+                        return /grupos de quatro/.test(error);
+                    }),
+                    'the group rule is translated: ' + partial.join(' | ')
                 );
             });
         });

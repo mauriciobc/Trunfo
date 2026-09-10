@@ -38,8 +38,14 @@
      * Top Trumps is a random walk and, with a deterministic chooser, it can
      * cycle forever — a seeded simulation found exactly that. After this many
      * rounds the match is decided on pile size instead, so a game always ends.
+     *
+     * 150 was the number for the 16-card deck (~5–7× the average game). A
+     * 32-card deck plays about twice as long, so the backstop moved with it:
+     * at 150 the cap cut off 29% of car-deck games that would have finished on
+     * their own, at 300 that is 11% (2,000 seeded games each, mixed AI, the
+     * player modelled as picking its own best stat).
      */
-    const DEFAULT_ROUND_LIMIT = 150;
+    const DEFAULT_ROUND_LIMIT = 300;
 
     /**
      * How the computer chooses a category when it leads a round.
@@ -115,8 +121,34 @@
     }
 
     /**
+     * A Trunfo deck is dealt in groups of four, lettered A–D: the first group is
+     * 1A–1D, the second 2A–2D, and a full deck is eight groups — 32 cards, 1A to
+     * 8D. The code is the card's identity at the table: it is what the numbered
+     * badge on a real card shows, so the engine derives it from the card's
+     * position in the theme rather than trusting the theme to carry one.
+     *
+     * `MAX_GROUPS` is the ceiling the deck store enforces on a player's deck, not
+     * a limit on what the engine will play: a theme of any length still gets a
+     * code for every card.
+     */
+    const CARDS_PER_GROUP = 4;
+    const MAX_GROUPS = 8;
+    const MAX_CARDS = CARDS_PER_GROUP * MAX_GROUPS;
+    const GROUP_LETTERS = ['A', 'B', 'C', 'D'];
+
+    /** The code of the card at `index`: "1A", "1B", … "2A" … "8D". */
+    function cardCode(index) {
+        return Math.floor(index / CARDS_PER_GROUP) + 1 + GROUP_LETTERS[index % CARDS_PER_GROUP];
+    }
+
+    /** The group the card at `index` belongs to: 1 for "1A"–"1D", … 8 for "8A"–"8D". */
+    function cardGroup(index) {
+        return Math.floor(index / CARDS_PER_GROUP) + 1;
+    }
+
+    /**
      * Build a deck from a theme configuration.
-     * Card shape: { id, name, theme, icon, superTrunfo, attributes: { ... } }
+     * Card shape: { id, code, name, theme, icon, superTrunfo, attributes: { ... } }
      *
      * Validates eagerly: a theme that omits a declared attribute, or declares a
      * non-numeric one, fails here rather than halfway through a round.
@@ -139,6 +171,7 @@
         }
 
         return themeConfig.cards.map(function (card, index) {
+            const code = cardCode(index);
             const attributes = {};
             keys.forEach(function (key) {
                 if (
@@ -157,7 +190,9 @@
                 attributes[key] = card.attributes[key];
             });
             return {
-                id: (themeConfig.id || 'deck') + '-' + index,
+                id: (themeConfig.id || 'deck') + '-' + code,
+                code: code,
+                group: cardGroup(index),
                 name: card.name,
                 theme: themeConfig.theme || themeConfig.id || 'Unknown theme',
                 icon: card.icon || null,
@@ -323,9 +358,20 @@
         return Array.isArray(hand) && hand.length > 0 ? hand[0] : null;
     }
 
-    /** A genuine Super Trunfo card beats any ordinary card. */
+    /**
+     * The Super Trunfo card: it beats every card in the deck whatever the
+     * category, ignoring the values.
+     */
     function isSuperTrunfo(card) {
         return !!(card && card.superTrunfo === true);
+    }
+
+    /**
+     * A card numbered 1 — the four cards of the first group, "1A"–"1D". The
+     * rules single them out: they are the only cards that beat a Super Trunfo.
+     */
+    function isNumberOneCard(card) {
+        return !!card && card.group === 1;
     }
 
     /** A draw from [0, 1): the state's seeded source, or the argument given. */
@@ -405,9 +451,12 @@
      * Compare two cards on a single category.
      *
      * `direction` decides which value is better: `"higher"` (the default, and
-     * the classic Top Trumps rule) or `"lower"`. A Super Trunfo card wins
-     * outright; when both cards are trumps the direction decides between them.
-     * Equal values are a draw.
+     * the classic Top Trumps rule) or `"lower"`.
+     *
+     * A Super Trunfo card is the exception to the whole comparison: it beats
+     * every card whatever the category and whatever the values — unless the
+     * other card is a "1" card (`isNumberOneCard`), which beats it in turn.
+     * When both cards are trumps the direction decides between them.
      *
      * @param {object} playerCard
      * @param {object} computerCard
@@ -430,8 +479,12 @@
         const computerSuper = isSuperTrunfo(computerCard);
 
         let outcome = DRAW;
+        let trumpBeaten = false;
         if (playerSuper !== computerSuper) {
-            outcome = playerSuper ? PLAYER : COMPUTER;
+            const trumpSide = playerSuper ? PLAYER : COMPUTER;
+            const other = playerSuper ? computerCard : playerCard;
+            trumpBeaten = isNumberOneCard(other);
+            outcome = trumpBeaten ? (trumpSide === PLAYER ? COMPUTER : PLAYER) : trumpSide;
         } else if (playerValue !== computerValue) {
             const playerBetter =
                 rule === DIRECTIONS.lower ? playerValue < computerValue : playerValue > computerValue;
@@ -445,7 +498,8 @@
             computerValue: computerValue,
             outcome: outcome,
             margin: Math.abs(playerValue - computerValue),
-            superTrunfo: playerSuper || computerSuper
+            superTrunfo: playerSuper || computerSuper,
+            trumpBeaten: trumpBeaten
         };
     }
 
@@ -531,6 +585,7 @@
             outcome: comparison.outcome,
             margin: comparison.margin,
             superTrunfo: comparison.superTrunfo,
+            trumpBeaten: comparison.trumpBeaten,
             potSize: pot.length,
             claimedDrawPile: pendingDrawPile.length,
             mode: chosenBy,
@@ -543,6 +598,7 @@
             outcome: comparison.outcome,
             potSize: pot.length,
             superTrunfo: comparison.superTrunfo,
+            trumpBeaten: comparison.trumpBeaten,
             mode: chosenBy
         });
 
@@ -554,9 +610,10 @@
      * Evaluate the end condition.
      *
      * The match ends when a pile is empty — "one player has all the cards" — or
-     * when the round limit is reached. With the shipped deck the limit is a
-     * backstop that never fires (0 of 2000 seeded games); it exists so that a
-     * custom deck cannot produce a game that never ends. Set `roundLimit: 0` on
+     * when the round limit is reached. With the shipped decks the limit is a
+     * backstop: with the mixed AI it fires for about 3.5% of animals-deck games
+     * and 30% of car-deck games (2,000 seeds each, the 32-card decks). It exists
+     * so that no deck can produce a game that never ends. Set `roundLimit: 0` on
      * `createGame` to remove it entirely.
      *
      * Note: the design documents only say "the game ends when one player has
@@ -710,6 +767,11 @@
         DIRECTIONS: DIRECTIONS,
         DEFAULT_DIRECTION: DEFAULT_DIRECTION,
         DEFAULT_ROUND_LIMIT: DEFAULT_ROUND_LIMIT,
+        CARDS_PER_GROUP: CARDS_PER_GROUP,
+        MAX_GROUPS: MAX_GROUPS,
+        MAX_CARDS: MAX_CARDS,
+        cardCode: cardCode,
+        cardGroup: cardGroup,
         createDeck: createDeck,
         inferAttributeKeys: inferAttributeKeys,
         normaliseDirections: normaliseDirections,
@@ -721,6 +783,7 @@
         attributeScore: attributeScore,
         getTopCard: getTopCard,
         isSuperTrunfo: isSuperTrunfo,
+        isNumberOneCard: isNumberOneCard,
         chooseComputerCategory: chooseComputerCategory,
         selectComputerCategory: selectComputerCategory,
         compareCards: compareCards,

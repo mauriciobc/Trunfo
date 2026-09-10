@@ -97,6 +97,33 @@
             deepEqual(deck[0].attributes, theme.cards[0].attributes, 'attribute values');
         });
 
+        test('createDeck codes each card by its group and letter', function () {
+            const deck = Engine.createDeck(theme);
+            equal(deck.length, Engine.MAX_CARDS, 'a full deck holds 32');
+            equal(deck[0].code, '1A', 'the first card is 1A');
+            equal(deck[3].code, '1D', 'the first group ends at 1D');
+            equal(deck[4].code, '2A', 'the second group starts at 2A');
+            equal(deck[31].code, '8D', 'the last group ends at 8D');
+            deck.forEach(function (card, index) {
+                equal(card.code, Engine.cardCode(index), card.name + ': code from position');
+                equal(card.id, theme.id + '-' + card.code, card.name + ': the id carries the code');
+            });
+
+            // An engine-only theme of any length still gets a code per card.
+            const short = Engine.createDeck({
+                id: 'short',
+                attributes: ['a'],
+                cards: [
+                    { name: 'One', attributes: { a: 1 } },
+                    { name: 'Two', attributes: { a: 2 } },
+                    { name: 'Three', attributes: { a: 3 } },
+                    { name: 'Four', attributes: { a: 4 } },
+                    { name: 'Five', attributes: { a: 5 } }
+                ]
+            });
+            equal(short[4].code, '2A', 'a theme longer than a group keeps counting groups');
+        });
+
         test('createDeck rejects a theme without cards', function () {
             let threw = false;
             try {
@@ -558,26 +585,52 @@
     }
 
     function superTrunfoAndModes() {
+        // Eight cards, two groups: the "1" cards come first, so a test can put
+        // the trump up against one of them or against an ordinary neighbour.
         const superTheme = {
             id: 'super-test',
             theme: 'Super Test',
             attributes: ['size', 'speed'],
             units: { size: 'cm', speed: 'km/h' },
             cards: [
+                { name: 'OneMiddling', attributes: { size: 250, speed: 100 } },
+                { name: 'OneThin', attributes: { size: 1, speed: 1 } },
+                { name: 'OneBig', attributes: { size: 500, speed: 1 } },
+                { name: 'OneQuick', attributes: { size: 1, speed: 120 } },
                 { name: 'Trump', attributes: { size: 1, speed: 1 }, superTrunfo: true },
-                { name: 'Big', attributes: { size: 500, speed: 1 } },
-                { name: 'Quick', attributes: { size: 1, speed: 120 } },
-                { name: 'Middling', attributes: { size: 250, speed: 100 } }
+                { name: 'Big', attributes: { size: 400, speed: 10 } },
+                { name: 'Quick', attributes: { size: 20, speed: 90 } },
+                { name: 'Slow', attributes: { size: 300, speed: 5 } }
             ]
         };
 
         test('a Super Trunfo card beats a higher value', function () {
             const deck = Engine.createDeck(superTheme);
-            const trump = deck[0];
-            const big = deck[1];
+            const trump = deck[4];
+            const big = deck[5];
+            equal(trump.code, '2A', 'the trump opens the second group');
+            equal(big.code, '2B', 'and its neighbour is an ordinary card');
             const result = Engine.compareCards(trump, big, 'size');
-            equal(result.outcome, Engine.PLAYER, 'the trump wins despite size 1 vs 500');
+            equal(result.outcome, Engine.PLAYER, 'the trump wins despite size 1 vs 400');
             equal(result.superTrunfo, true, 'the result is flagged as a trump round');
+            equal(result.trumpBeaten, false, 'and not flagged as a trump beaten');
+        });
+
+        test('a "1" card beats the Super Trunfo, whichever side plays it', function () {
+            const deck = Engine.createDeck(superTheme);
+            const trump = deck[4];
+            const one = deck[2];
+            equal(one.code, '1C', 'a card of the first group');
+
+            const asPlayer = Engine.compareCards(trump, one, 'size');
+            equal(asPlayer.outcome, Engine.COMPUTER, 'the "1" card takes the round off the trump');
+            equal(asPlayer.trumpBeaten, true, 'and the round says the trump was beaten');
+            equal(asPlayer.playerValue, 1, 'the values are still reported');
+            equal(asPlayer.computerValue, 500, 'both of them');
+
+            const asComputer = Engine.compareCards(one, trump, 'size');
+            equal(asComputer.outcome, Engine.PLAYER, 'the same in the other order');
+            equal(asComputer.trumpBeaten, true, 'flagged either way');
         });
 
         test('two Super Trunfo cards fall back to the higher value', function () {
@@ -684,12 +737,31 @@
             assert(uncapped.phase === Engine.PHASE.GAME_OVER, 'the game still ends on piles alone');
         });
 
-        test('the shipped deck is plain "highest value wins"', function () {
-            const deck = Engine.createDeck(theme);
-            const trumps = deck.filter(function (card) {
-                return Engine.isSuperTrunfo(card);
+        test('every shipped deck carries exactly one Super Trunfo card', function () {
+            Deck.THEMES.forEach(function (theme) {
+                const deck = Engine.createDeck(theme);
+                const trumps = deck.filter(function (card) {
+                    return Engine.isSuperTrunfo(card);
+                });
+                equal(trumps.length, 1, theme.id + ': one Super Trunfo card');
+
+                const trump = trumps[0];
+                assert(!Engine.isNumberOneCard(trump), theme.id + ': the trump is not a "1" card');
+
+                // The rule, card by card: the trump takes every round except the
+                // ones it plays against a "1" card. The values never matter.
+                deck.forEach(function (card) {
+                    if (card === trump) return;
+                    const expected = Engine.isNumberOneCard(card) ? Engine.COMPUTER : Engine.PLAYER;
+                    const result = Engine.compareCards(trump, card, theme.attributes[0]);
+                    equal(result.outcome, expected, theme.id + ': ' + trump.code + ' vs ' + card.code);
+                    equal(
+                        result.trumpBeaten,
+                        Engine.isNumberOneCard(card),
+                        theme.id + ': ' + card.code + ' beaten flag'
+                    );
+                });
             });
-            equal(trumps.length, 0, 'no card carries the off-spec trump flag');
         });
 
         test('summarise reports the match totals from the log', function () {
@@ -815,6 +887,30 @@
                 });
                 equal(new Set(names).size, names.length, theme.id + ': card names are unique');
 
+                // A Trunfo deck: thirty-two cards in eight groups of four,
+                // 1A–1D … 8A–8D. This is the deck the game is played with, so it
+                // is asserted here rather than trusted to the theme's ordering.
+                equal(deck.length, Engine.MAX_CARDS, theme.id + ': a full deck of thirty-two');
+                equal(deck[0].code, '1A', theme.id + ': opens at 1A');
+                equal(deck[deck.length - 1].code, '8D', theme.id + ': ends at 8D');
+                equal(
+                    new Set(
+                        deck.map(function (card) {
+                            return card.code;
+                        })
+                    ).size,
+                    Engine.MAX_CARDS,
+                    theme.id + ': every card has its own code'
+                );
+                deck.forEach(function (card, index) {
+                    equal(card.code, Engine.cardCode(index), theme.id + ': code of card ' + index);
+                    equal(
+                        card.code.charAt(0),
+                        String(Math.floor(index / Engine.CARDS_PER_GROUP) + 1),
+                        theme.id + ': group number of card ' + index
+                    );
+                });
+
                 theme.attributes.forEach(function (key) {
                     assert(!!theme.labels[key], theme.id + ': ' + key + ' has a label');
                     assert(!!theme.units[key], theme.id + ': ' + key + ' has a unit');
@@ -826,7 +922,7 @@
             const cars = Deck.getTheme('electric-cars-2026');
             assert(cars, 'the deck exists');
             equal(cars.attributes.length, 5, 'five stats');
-            equal(cars.cards.length, 16, 'sixteen cars');
+            equal(cars.cards.length, Engine.MAX_CARDS, 'a full deck of thirty-two cars');
 
             Engine.createDeck(cars).forEach(function (card) {
                 equal(Object.keys(card.attributes).length, 5, card.name + ': five values');
@@ -846,8 +942,17 @@
             equal(game.minima.acceleration, 2.1, 'the quickest car sets the floor');
 
             // The same two cards must resolve in opposite directions per stat.
-            const plaid = { name: 'Plaid', attributes: cars.cards[1].attributes };
-            const ioniq = { name: 'Ioniq', attributes: cars.cards[8].attributes };
+            // Looked up by name: the deck is ordered in groups of four, so a
+            // hard-coded index would be a second, silent definition of the deck.
+            const byName = {};
+            cars.cards.forEach(function (card) {
+                byName[card.name] = card;
+            });
+            const plaid = { name: 'Plaid', attributes: byName['Tesla Model S Plaid'].attributes };
+            const ioniq = {
+                name: 'Ioniq',
+                attributes: byName['Hyundai Ioniq 6 Long Range'].attributes
+            };
             equal(
                 Engine.compareCards(plaid, ioniq, 'acceleration', game.directions.acceleration).outcome,
                 Engine.PLAYER,

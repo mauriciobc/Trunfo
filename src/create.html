@@ -6,7 +6,7 @@
         <meta
             name="description"
             data-i18n-content="app.createDescription"
-            content="Create your own Trunfo deck: name it, choose up to five stats, and fill in the cards."
+            content="Create your own Trunfo deck: name it, choose up to five stats, and fill in the cards in groups of four."
         />
         <title data-i18n="app.createTitle">Trunfo — Deck creator</title>
         <link rel="stylesheet" href="css/styles.css" />
@@ -78,13 +78,19 @@
                             <span data-i18n="create.step3">3 · Cards</span>
                             <span class="panel__count" id="card-count">0</span>
                         </h2>
-                        <button id="add-card" class="btn btn--ghost" type="button" data-i18n="create.addCard">
-                            Add card
+                        <button
+                            id="add-group"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.addGroup"
+                        >
+                            Add a group of four
                         </button>
                     </div>
                     <p class="hint" data-i18n="create.cardsHint">
-                        Every card needs a name and a number for each stat. An icon is optional — paste an
-                        emoji.
+                        Cards come in groups of four, lettered A–D: 1A–1D, then 2A–2D, up to 8A–8D — no more
+                        than eight groups. Every card needs a name and a number for each stat. An icon is
+                        optional — paste an emoji.
                     </p>
                     <div class="table-wrap">
                         <table id="cards" class="cards-table"></table>

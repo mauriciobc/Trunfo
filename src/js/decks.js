@@ -52,9 +52,29 @@
         return null;
     }
 
+    /**
+     * The deck's shape — how many cards a group holds and how many groups a deck
+     * may have — belongs to the game rules, so the engine owns the numbers and
+     * mints the card codes. Loading it here keeps the store from inventing a
+     * second opinion about what a well-formed deck is.
+     */
+    function loadEngine() {
+        if (global && global.TrunfoEngine) return global.TrunfoEngine;
+        if (typeof require === 'function') {
+            try {
+                return require('./engine.js');
+            } catch {
+                return null;
+            }
+        }
+        return null;
+    }
+
     const I18n = loadI18n();
     if (!I18n) throw new Error('TrunfoDecks requires i18n.js to be loaded first.');
     const t = I18n.t;
+    const Engine = loadEngine();
+    if (!Engine) throw new Error('TrunfoDecks requires engine.js to be loaded first.');
 
     const DB_NAME = 'trunfo';
     const DB_VERSION = 1;
@@ -69,8 +89,16 @@
     /** "Allow decks to have 5 items" — five stats per card. */
     const MAX_STATS = 5;
     const MIN_STATS = 1;
-    const MIN_CARDS = 2;
-    const MAX_CARDS = 40;
+    /**
+     * The Trunfo layout: cards come in groups of four, lettered A–D, and a deck
+     * is one to eight groups — 1A–1D … 8A–8D, so 4 to 32 cards. The numbers come
+     * from the engine, which derives each card's code from this same grouping.
+     */
+    const CARDS_PER_GROUP = Engine.CARDS_PER_GROUP;
+    const MIN_GROUPS = 1;
+    const MAX_GROUPS = Engine.MAX_GROUPS;
+    const MIN_CARDS = CARDS_PER_GROUP * MIN_GROUPS;
+    const MAX_CARDS = Engine.MAX_CARDS;
     const MAX_DECKS = 20;
     /** Artwork is downscaled before it gets here; this is the hard ceiling. */
     const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
@@ -198,12 +226,9 @@
         });
 
         const rawCards = Array.isArray(raw.cards) ? raw.cards : [];
-        if (rawCards.length < MIN_CARDS) errors.push(t('error.minCards', { min: MIN_CARDS }));
-        if (rawCards.length > MAX_CARDS) {
-            errors.push(t('error.maxCards', { max: MAX_CARDS }));
-        }
 
         const cards = [];
+        let superCount = 0;
         rawCards.forEach(function (card, index) {
             const name = clampText(card && card.name, MAX_CARD_NAME);
             const where = name
@@ -228,8 +253,33 @@
                     ? card.imageId
                     : null;
 
-            cards.push({ name: name, icon: icon || null, imageId: imageId, attributes: values });
+            if (card && card.superTrunfo === true) {
+                // A deck has one Super Trunfo card; a second one would make the
+                // comparison meaningless. Report it once, on the second.
+                if (superCount === 1) errors.push(t('error.oneSuperTrunfo'));
+                superCount += 1;
+            }
+
+            cards.push({
+                name: name,
+                icon: icon || null,
+                imageId: imageId,
+                superTrunfo: !!(card && card.superTrunfo === true),
+                attributes: values
+            });
         });
+
+        // A deck is played in groups of four, lettered A–D, up to eight groups.
+        // One check covers all three ways to be off-layout — too few cards, a
+        // partial group, more groups than a deck has — and it is reported after
+        // the per-card problems, which name a row the player can go and fix.
+        const wholeGroups =
+            rawCards.length >= MIN_CARDS &&
+            rawCards.length <= MAX_CARDS &&
+            rawCards.length % CARDS_PER_GROUP === 0;
+        if (!wholeGroups) {
+            errors.push(t('error.cardGroups', { min: MIN_CARDS, max: MAX_CARDS }));
+        }
 
         if (errors.length) return { deck: null, errors: errors };
 
@@ -431,7 +481,7 @@
         };
 
         let readyPromise = null;
-        const migration = { attempted: false, imported: 0 };
+        const migration = { attempted: false, imported: 0, skipped: 0 };
 
         /** Move decks created by the pre-database build into the database. */
         function migrateLegacy() {
@@ -450,7 +500,13 @@
 
             const jobs = legacy.map(function (record) {
                 const result = normalize(record);
-                if (!result.deck) return Promise.resolve();
+                // A deck that does not fit the current layout (a partial group,
+                // or more cards than a deck holds) cannot be carried over; count
+                // it so the creator can say so instead of losing it in silence.
+                if (!result.deck) {
+                    migration.skipped += 1;
+                    return Promise.resolve();
+                }
                 result.deck.id = typeof record.id === 'string' ? record.id : result.deck.id;
                 const existing = mirror.decks.some(function (deck) {
                     return deck.id === result.deck.id;
@@ -768,6 +824,7 @@
                             icon: card.icon,
                             attributes: card.attributes
                         };
+                        if (card.superTrunfo) out.superTrunfo = true;
                         const dataUrl = withImages ? image(card.imageId) : null;
                         if (dataUrl) out.image = dataUrl;
                         return out;
@@ -847,6 +904,7 @@
                 imageBytes: stats.bytes,
                 selected: selected(),
                 migrated: migration.imported,
+                legacySkipped: migration.skipped,
                 error: mirror.error ? String(mirror.error.message || mirror.error) : null
             };
         }
@@ -901,6 +959,9 @@
         LEGACY_SELECTED_KEY: LEGACY_SELECTED_KEY,
         MAX_STATS: MAX_STATS,
         MIN_STATS: MIN_STATS,
+        CARDS_PER_GROUP: CARDS_PER_GROUP,
+        MIN_GROUPS: MIN_GROUPS,
+        MAX_GROUPS: MAX_GROUPS,
         MIN_CARDS: MIN_CARDS,
         MAX_CARDS: MAX_CARDS,
         MAX_DECKS: MAX_DECKS,

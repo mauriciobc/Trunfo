@@ -53,10 +53,11 @@ const CASES = [
     { id: 'solo', label: 'degenerate one-card deck', size: '1280,940', budget: 30000 },
     { id: 'customDeck', label: 'custom 5-stat deck in play', size: '1280,940', budget: 40000 },
     { id: 'cars', label: '2026 electric-car deck', size: '1280,940', budget: 40000 },
+    { id: 'superTrunfo', label: 'Super Trunfo rule', size: '1280,940', budget: 40000 },
     { id: 'lowerWins', label: 'lower-wins stat', size: '1280,940', budget: 40000 },
     { id: 'paper', label: 'paper-texture shader', size: '1280,940', budget: 40000 },
     { id: 'flip', label: 'flip leaves no 3D context', size: '1280,940', budget: 45000 },
-    { id: 'long', label: 'full 16-card game', size: '1280,940', budget: 180000 },
+    { id: 'long', label: 'full 32-card game', size: '1280,940', budget: 330000 },
     { id: 'locale', label: 'language switch to pt-BR', size: '1280,940', budget: 40000 },
     {
         id: 'localeParam',

@@ -108,6 +108,7 @@
         'game.fastOn': 'Fast play on — rounds resolve quickly.',
         'game.fastOff': 'Fast play off.',
         'game.result.trump': 'Super Trunfo! ',
+        'game.result.trumpBeaten': 'A “1” card beats the Super Trunfo! ',
         'game.result.win': '{trump}You win the round! {score}{pot}',
         'game.result.lose': '{trump}Computer wins the round. {score}{pot}',
         'game.result.draw': 'It’s a draw — the cards go to the pot. {score}',
@@ -135,9 +136,12 @@
         'rules.3': 'Click a category on your card to compare that stat.',
         'rules.4':
             'The higher value wins both cards — except on a stat marked ↓, where the lowest value wins. Won cards go to the bottom of the winner’s pile.',
-        'rules.5': 'On a draw the cards go to a pot that the next round’s winner claims.',
+        'rules.5':
+            'On a tie the cards stay on the table: the same player picks a category from their next card, and whoever wins that round takes everything on the table.',
         'rules.6': 'If the computer wins a round, it picks the next category.',
         'rules.7': 'The game ends when one player holds every card.',
+        'rules.8':
+            'One card in the deck is the Super Trunfo: it beats every card whatever the category and whatever the values — unless it runs into a “1” card (1A–1D), which beats it.',
         'rules.close': 'Got it',
 
         /* Game page — game over */
@@ -194,9 +198,9 @@
         'create.addStat': 'Add stat',
         'create.statsHint':
             'Each card compares these. Choose whether the highest or the lowest value wins — a 0–100 time, a price or a weight means the lowest wins. When the computer wins a round it picks the category itself, changing its mode from round to round.',
-        'create.addCard': 'Add card',
+        'create.addGroup': 'Add a group of four',
         'create.cardsHint':
-            'Every card needs a name and a number for each stat. An icon is optional — paste an emoji.',
+            'Cards come in groups of four, lettered A–D: 1A–1D, then 2A–2D, up to 8A–8D — no more than eight groups. Every card needs a name and a number for each stat. An icon is optional — paste an emoji. A card marked Super Trunfo beats every card in the deck except the “1” cards (1A–1D).',
         'create.saveDeck': 'Save deck',
         'create.template': 'Start from the built-in deck',
         'create.clear': 'Clear the form',
@@ -229,12 +233,19 @@
         'create.emojiForCard': 'Emoji for card {n}',
         'create.imageForCard': 'Image for card {n}',
         'create.removeImage': 'Remove the image from card {n}',
-        'create.removeCard': 'Remove card {n}',
         'create.image': 'Image',
         'create.imageTitle': 'Choose a picture for this card',
+        'create.tableCode': 'Code',
         'create.tableCard': 'Card',
         'create.tableUnit': 'Unit',
         'create.tableArtwork': 'Artwork',
+        'create.tableSuperTrunfo': 'Super Trunfo',
+        'create.superTrunfoForCard':
+            'Mark card {n} as the Super Trunfo card — it beats every other card except the “1” cards',
+        'create.groupLabel': 'Group {n}',
+        'create.removeGroup': 'Remove group {n}',
+        'create.groupsCount_one': '{count} group',
+        'create.groupsCount_other': '{count} groups',
         'create.ruleShort': '↓ lowest wins',
         'create.emptyCell': '—',
 
@@ -275,6 +286,10 @@
         'create.noIndexedDb': 'This browser has no IndexedDB, so decks last only for this session.',
         'create.migrated_one': 'Moved {count} deck from the old browser storage into the database.',
         'create.migrated_other': 'Moved {count} decks from the old browser storage into the database.',
+        'create.migratedSkipped_one':
+            'One deck in the old browser storage was left behind: it does not come in groups of four.',
+        'create.migratedSkipped_other':
+            '{count} decks in the old browser storage were left behind: they do not come in groups of four.',
         'create.builtInSuffix': ' (built-in)',
         'create.templateLoaded': 'Loaded the built-in deck as a starting point. Give it a new name and save.',
         'create.copySuffix': ' (copy)',
@@ -284,8 +299,10 @@
         'error.deckName': 'Give the deck a name.',
         'error.minStats': 'Add at least one stat.',
         'error.maxStats': 'A card can have at most {max} stats.',
-        'error.minCards': 'Add at least {min} cards.',
-        'error.maxCards': 'A deck can have at most {max} cards.',
+        'error.cardGroups':
+            'Cards come in groups of four, lettered A–D: a deck holds {min} to {max} cards (1A–1D … 8A–8D).',
+        'error.oneSuperTrunfo':
+            'Only one card can be the Super Trunfo: it beats every other card, so a second one could not be compared.',
         'error.cardWhere': 'Card {n}',
         'error.cardWhereNamed': 'Card {n} ({name})',
         'error.cardName': 'Card {n}: give the card a name.',
@@ -348,6 +365,7 @@
         'game.fastOn': 'Modo rápido ligado — as rodadas terminam depressa.',
         'game.fastOff': 'Modo rápido desligado.',
         'game.result.trump': 'Super Trunfo! ',
+        'game.result.trumpBeaten': 'Uma carta “1” vence a Super Trunfo! ',
         'game.result.win': '{trump}Você venceu a rodada! {score}{pot}',
         'game.result.lose': '{trump}O computador venceu a rodada. {score}{pot}',
         'game.result.draw': 'Empate — as cartas vão para o pote. {score}',
@@ -373,9 +391,12 @@
         'rules.3': 'Clique em uma categoria da sua carta para comparar aquela estatística.',
         'rules.4':
             'O maior valor leva as duas cartas — exceto em uma estatística marcada com ↓, em que o menor valor vence. As cartas ganhas vão para o fim da pilha de quem venceu.',
-        'rules.5': 'No empate as cartas vão para um pote, que fica com quem vencer a próxima rodada.',
+        'rules.5':
+            'No empate as cartas ficam na mesa: quem escolheu escolhe outra categoria na carta seguinte, e quem vencer a rodada leva todas as cartas da mesa.',
         'rules.6': 'Se o computador vencer uma rodada, ele escolhe a próxima categoria.',
         'rules.7': 'O jogo termina quando um dos lados fica com todas as cartas.',
+        'rules.8':
+            'Uma carta do baralho é a Super Trunfo: ela vence qualquer carta, em qualquer categoria e independentemente dos valores — a não ser que enfrente uma carta “1” (1A–1D), que vence a Super Trunfo.',
         'rules.close': 'Entendi',
 
         'over.title': 'Você venceu!',
@@ -427,9 +448,9 @@
         'create.addStat': 'Adicionar estatística',
         'create.statsHint':
             'Cada carta compara estas estatísticas. Escolha se o maior ou o menor valor vence — um tempo de 0 a 100, um preço ou um peso significa que o menor vence. Quando o computador vence uma rodada, ele escolhe a categoria, mudando de modo a cada rodada.',
-        'create.addCard': 'Adicionar carta',
+        'create.addGroup': 'Adicionar grupo de quatro',
         'create.cardsHint':
-            'Cada carta precisa de um nome e de um número para cada estatística. O ícone é opcional — cole um emoji.',
+            'As cartas vêm em grupos de quatro, com as letras A–D: 1A–1D, depois 2A–2D, até 8A–8D — no máximo oito grupos. Cada carta precisa de um nome e de um número para cada estatística. O ícone é opcional — cole um emoji. Uma carta marcada como Super Trunfo vence todas as outras do baralho, menos as cartas “1” (1A–1D).',
         'create.saveDeck': 'Salvar baralho',
         'create.template': 'Começar pelo baralho embutido',
         'create.clear': 'Limpar o formulário',
@@ -461,12 +482,19 @@
         'create.emojiForCard': 'Emoji da carta {n}',
         'create.imageForCard': 'Imagem da carta {n}',
         'create.removeImage': 'Remover a imagem da carta {n}',
-        'create.removeCard': 'Remover carta {n}',
         'create.image': 'Imagem',
         'create.imageTitle': 'Escolha uma figura para esta carta',
+        'create.tableCode': 'Código',
         'create.tableCard': 'Carta',
         'create.tableUnit': 'Unidade',
         'create.tableArtwork': 'Arte',
+        'create.tableSuperTrunfo': 'Super Trunfo',
+        'create.superTrunfoForCard':
+            'Marcar a carta {n} como a carta Super Trunfo — ela vence todas as outras, menos as cartas “1”',
+        'create.groupLabel': 'Grupo {n}',
+        'create.removeGroup': 'Remover o grupo {n}',
+        'create.groupsCount_one': '{count} grupo',
+        'create.groupsCount_other': '{count} grupos',
         'create.ruleShort': '↓ menor vence',
         'create.emptyCell': '—',
 
@@ -510,6 +538,10 @@
             'Movido {count} baralho do armazenamento antigo do navegador para o banco de dados.',
         'create.migrated_other':
             'Movidos {count} baralhos do armazenamento antigo do navegador para o banco de dados.',
+        'create.migratedSkipped_one':
+            'Um baralho do armazenamento antigo do navegador ficou para trás: ele não vem em grupos de quatro.',
+        'create.migratedSkipped_other':
+            '{count} baralhos do armazenamento antigo do navegador ficaram para trás: eles não vêm em grupos de quatro.',
         'create.builtInSuffix': ' (embutido)',
         'create.templateLoaded':
             'Baralho embutido carregado como ponto de partida. Dê a ele um novo nome e salve.',
@@ -519,8 +551,10 @@
         'error.deckName': 'Dê um nome ao baralho.',
         'error.minStats': 'Adicione pelo menos uma estatística.',
         'error.maxStats': 'Uma carta pode ter no máximo {max} estatísticas.',
-        'error.minCards': 'Adicione pelo menos {min} cartas.',
-        'error.maxCards': 'Um baralho pode ter no máximo {max} cartas.',
+        'error.cardGroups':
+            'As cartas vêm em grupos de quatro, com as letras A–D: um baralho tem de {min} a {max} cartas (1A–1D … 8A–8D).',
+        'error.oneSuperTrunfo':
+            'Só uma carta pode ser a Super Trunfo: ela vence todas as outras, então uma segunda não poderia ser comparada.',
         'error.cardWhere': 'Carta {n}',
         'error.cardWhereNamed': 'Carta {n} ({name})',
         'error.cardName': 'Carta {n}: dê um nome à carta.',

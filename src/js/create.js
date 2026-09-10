@@ -14,14 +14,17 @@
     const Decks = global.TrunfoDecks;
     const Images = global.TrunfoImages;
     const Deck = global.TrunfoDeck;
+    const Engine = global.TrunfoEngine;
     const I18n = global.TrunfoI18n;
 
-    if (!Decks || !Deck || !I18n) {
+    if (!Decks || !Deck || !Engine || !I18n) {
         throw new Error('The deck creator needs i18n.js, deck.js, engine.js and decks.js first.');
     }
 
     const t = I18n.t;
     const MAX_STATS = Decks.MAX_STATS;
+    /** A group is four cards — the unit a deck is written and edited in. */
+    const PER_GROUP = Decks.CARDS_PER_GROUP;
     const els = {};
     let draft = null;
     let statSeq = 0;
@@ -54,9 +57,16 @@
         };
     }
 
-    function newCard(values) {
+    function newCard() {
         cardSeq += 1;
-        return { id: 'c' + cardSeq, name: '', icon: '', imageId: null, values: values || {} };
+        return { id: 'c' + cardSeq, name: '', icon: '', imageId: null, superTrunfo: false, values: {} };
+    }
+
+    /** Four blank cards — one whole group, the unit a deck is built in. */
+    function newGroup() {
+        const cards = [];
+        for (let i = 0; i < PER_GROUP; i++) cards.push(newCard());
+        return cards;
     }
 
     function blankDraft() {
@@ -64,8 +74,14 @@
             id: null,
             theme: '',
             stats: [newStat(), newStat(), newStat()],
-            cards: [newCard(), newCard()]
+            // A deck is a whole number of groups; a new one holds a single group.
+            cards: newGroup()
         };
+    }
+
+    /** How many groups the draft currently holds. */
+    function groupCount() {
+        return Math.ceil(draft.cards.length / PER_GROUP);
     }
 
     function findStat(key) {
@@ -302,7 +318,9 @@
         const names = el('tr');
         const units = el('tr', 'cards-table__units');
 
+        names.appendChild(el('th', 'cards-table__corner', t('create.tableCode')));
         names.appendChild(el('th', 'cards-table__corner', t('create.tableCard')));
+        units.appendChild(el('th', 'cards-table__corner'));
         units.appendChild(el('th', 'cards-table__corner', t('create.tableUnit')));
 
         // The Stats panel owns the names, units and comparison rule; these
@@ -332,7 +350,7 @@
         });
 
         names.appendChild(el('th', 'cards-table__corner', t('create.tableArtwork')));
-        names.appendChild(el('th', 'cards-table__corner', ''));
+        names.appendChild(el('th', 'cards-table__corner', t('create.tableSuperTrunfo')));
         units.appendChild(el('th'));
         units.appendChild(el('th'));
 
@@ -342,7 +360,41 @@
 
         const body = el('tbody');
         draft.cards.forEach(function (card, index) {
+            const group = Math.floor(index / PER_GROUP) + 1;
+
+            // A group header: the deck's own numbering for the four cards under
+            // it, and the only way to remove them — a deck is written in whole
+            // groups, never in loose cards.
+            if (index % PER_GROUP === 0) {
+                const groupRow = el('tr', 'cards-table__group');
+                const label = el(
+                    'th',
+                    null,
+                    t('create.groupLabel', { n: group }) +
+                        ' \u00b7 ' +
+                        Engine.cardCode(index) +
+                        '\u2013' +
+                        Engine.cardCode(index + PER_GROUP - 1)
+                );
+                label.colSpan = draft.stats.length + 3;
+                groupRow.appendChild(label);
+
+                const removeCell = el('td');
+                const removeGroup = el('button', 'btn btn--ghost btn--tiny', '✕');
+                removeGroup.type = 'button';
+                removeGroup.setAttribute('data-remove-group', String(group));
+                removeGroup.disabled = groupCount() <= Decks.MIN_GROUPS;
+                removeGroup.setAttribute('aria-label', t('create.removeGroup', { n: group }));
+                removeCell.appendChild(removeGroup);
+                groupRow.appendChild(removeCell);
+                body.appendChild(groupRow);
+            }
+
             const row = el('tr');
+
+            const codeCell = el('td', 'cards-table__code');
+            codeCell.appendChild(el('span', 'card-code', Engine.cardCode(index)));
+            row.appendChild(codeCell);
 
             const nameCell = el('td');
             const nameInput = el('input', 'input');
@@ -377,20 +429,25 @@
 
             row.appendChild(cardArtCell(card, index));
 
-            const removeCell = el('td');
-            const remove = el('button', 'btn btn--ghost btn--tiny', '✕');
-            remove.type = 'button';
-            remove.setAttribute('data-remove-card', card.id);
-            remove.disabled = draft.cards.length <= Decks.MIN_CARDS;
-            remove.setAttribute('aria-label', t('create.removeCard', { n: index + 1 }));
-            removeCell.appendChild(remove);
-            row.appendChild(removeCell);
+            const trumpCell = el('td', 'cards-table__trump');
+            const trump = el('input', 'checkbox');
+            trump.type = 'checkbox';
+            trump.checked = card.superTrunfo === true;
+            trump.setAttribute('data-card', card.id);
+            trump.setAttribute('data-field', 'superTrunfo');
+            trump.setAttribute('aria-label', t('create.superTrunfoForCard', { n: index + 1 }));
+            trumpCell.appendChild(trump);
+            row.appendChild(trumpCell);
 
             body.appendChild(row);
         });
         table.appendChild(body);
 
-        els.cardCount.textContent = t('count.cards', { count: draft.cards.length });
+        els.cardCount.textContent =
+            t('create.groupsCount', { count: groupCount() }) +
+            ' \u00b7 ' +
+            t('count.cards', { count: draft.cards.length });
+        els.addGroup.disabled = groupCount() >= Decks.MAX_GROUPS;
     }
 
     function renderAll() {
@@ -414,6 +471,21 @@
             else if (field === 'icon') {
                 card.icon = target.value;
                 renderArt(card);
+            } else if (field === 'superTrunfo') {
+                // A deck holds one Super Trunfo card, so marking one clears the
+                // rest. The other boxes are updated in place rather than by
+                // re-rendering, which would pull the row out from under the click.
+                const marked = target.checked === true;
+                draft.cards.forEach(function (item) {
+                    item.superTrunfo = marked && item.id === card.id;
+                });
+                Array.prototype.forEach.call(
+                    els.cards.querySelectorAll('[data-field="superTrunfo"]'),
+                    function (box) {
+                        const owner = findCard(box.getAttribute('data-card'));
+                        box.checked = !!(owner && owner.superTrunfo);
+                    }
+                );
             } else if (statKey) card.values[statKey] = target.value;
             return;
         }
@@ -502,6 +574,14 @@
             return;
         }
 
+        const groupButton = event.target.closest('[data-remove-group]');
+        if (groupButton) {
+            const from = (Number(groupButton.getAttribute('data-remove-group')) - 1) * PER_GROUP;
+            draft.cards.splice(from, PER_GROUP);
+            renderAll();
+            return;
+        }
+
         const imageButton = event.target.closest('[data-clear-image]');
         if (imageButton) {
             const card = findCard(imageButton.getAttribute('data-clear-image'));
@@ -512,15 +592,6 @@
                 setStatus(els.status, 'create.imageRemoved');
             }
             return;
-        }
-
-        const cardButton = event.target.closest('[data-remove-card]');
-        if (cardButton) {
-            const id = cardButton.getAttribute('data-remove-card');
-            draft.cards = draft.cards.filter(function (card) {
-                return card.id !== id;
-            });
-            renderAll();
         }
     }
 
@@ -565,6 +636,7 @@
                 name: card.name,
                 icon: card.icon,
                 imageId: card.imageId,
+                superTrunfo: card.superTrunfo === true,
                 attributes: values
             };
         });
@@ -605,6 +677,7 @@
                 name: card.name,
                 icon: card.icon || '',
                 imageId: card.imageId || null,
+                superTrunfo: card.superTrunfo === true,
                 values: values
             };
         });
@@ -780,7 +853,7 @@
         els.statCount = byId('stat-count');
         els.cardCount = byId('card-count');
         els.addStat = byId('add-stat');
-        els.addCard = byId('add-card');
+        els.addGroup = byId('add-group');
         els.save = byId('save');
         els.template = byId('template');
         els.clear = byId('clear');
@@ -815,12 +888,11 @@
             renderAll();
         });
 
-        els.addCard.addEventListener('click', function () {
-            const values = {};
-            draft.stats.forEach(function (stat) {
-                values[stat.key] = '';
+        els.addGroup.addEventListener('click', function () {
+            if (groupCount() >= Decks.MAX_GROUPS) return;
+            newGroup().forEach(function (card) {
+                draft.cards.push(card);
             });
-            draft.cards.push(newCard(values));
             renderAll();
         });
 
@@ -938,6 +1010,9 @@
                 }
                 if (info.migrated) {
                     setStatus(els.status, 'create.migrated', { count: info.migrated }, 'ok');
+                }
+                if (info.legacySkipped) {
+                    setStatus(els.status, 'create.migratedSkipped', { count: info.legacySkipped }, 'error');
                 }
 
                 const wanted = (global.location.hash.match(/^#edit=(.+)$/) || [])[1];

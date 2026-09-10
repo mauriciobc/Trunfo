@@ -80,6 +80,14 @@
                     {
                         name: 'Triceratops',
                         attributes: { length: 9, weight: 6, speed: 24, bite: 12, age: 30 }
+                    },
+                    {
+                        name: 'Velociraptor',
+                        attributes: { length: 2, weight: 0.08, speed: 40, bite: 3, age: 15 }
+                    },
+                    {
+                        name: 'Stegosaurus',
+                        attributes: { length: 9, weight: 5, speed: 12, bite: 8, age: 25 }
                     }
                 ]
             },
@@ -124,7 +132,7 @@
             deepEqual(Decks.validate(fiveStatDeck()), [], 'no errors');
             const result = Decks.normalize(fiveStatDeck());
             equal(result.deck.attributes.length, 5, 'five stats kept');
-            equal(result.deck.cards.length, 2, 'two cards kept');
+            equal(result.deck.cards.length, 4, 'one whole group kept');
         });
 
         test('the five-stat limit is enforced', function () {
@@ -134,7 +142,9 @@
                 units: {},
                 cards: [
                     { name: 'One', attributes: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } },
-                    { name: 'Two', attributes: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } }
+                    { name: 'Two', attributes: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } },
+                    { name: 'Three', attributes: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } },
+                    { name: 'Four', attributes: { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 } }
                 ]
             });
             const errors = Decks.validate(tooMany);
@@ -152,22 +162,47 @@
             );
         });
 
-        test('a deck needs at least two cards', function () {
-            const errors = Decks.validate(fiveStatDeck({ cards: [fiveStatDeck().cards[0]] }));
+        test('cards must come in whole groups of four', function () {
+            const base = fiveStatDeck();
+            const eight = base.cards.concat(base.cards);
+            [1, 2, 3, 5, 7].forEach(function (count) {
+                const errors = Decks.validate(fiveStatDeck({ cards: eight.slice(0, count) }));
+                assert(
+                    errors.some(function (e) {
+                        return /groups of four/.test(e);
+                    }),
+                    count + ' cards: names the problem'
+                );
+            });
+
+            const full = Decks.validate(fiveStatDeck({ cards: eight }));
+            deepEqual(full, [], 'two whole groups are fine');
+        });
+
+        test('a deck holds at most eight groups', function () {
+            const base = fiveStatDeck();
+            const nine = [];
+            for (let i = 0; i < 36; i++) nine.push(base.cards[i % base.cards.length]);
+
+            const errors = Decks.validate(fiveStatDeck({ cards: nine }));
             assert(
                 errors.some(function (e) {
-                    return /at least 2 cards/.test(e);
+                    return /4 to 32 cards/.test(e);
                 }),
-                'names the problem'
+                'names the ceiling: ' + errors.join(' | ')
             );
+            equal(Decks.MAX_CARDS, Decks.CARDS_PER_GROUP * Decks.MAX_GROUPS, 'the ceiling is the groups');
         });
 
         test('every card needs a name and a number for every stat', function () {
+            const good = fiveStatDeck().cards[2];
             const errors = Decks.validate(
                 fiveStatDeck({
                     cards: [
                         { name: '', attributes: { length: 1, weight: 1, speed: 1, bite: 1, age: 1 } },
-                        { name: 'Bad', attributes: { length: 'huge', weight: 1, speed: 1, bite: 1, age: 1 } }
+                        { name: 'Bad', attributes: { length: 'huge', weight: 1, speed: 1, bite: 1, age: 1 } },
+                        good,
+                        good
                     ]
                 })
             );
@@ -184,7 +219,9 @@
                     units: {},
                     cards: [
                         { name: 'A', attributes: { 'Top Speed': 1, 'top speed': 2 } },
-                        { name: 'B', attributes: { 'Top Speed': 3, 'top speed': 4 } }
+                        { name: 'B', attributes: { 'Top Speed': 3, 'top speed': 4 } },
+                        { name: 'C', attributes: { 'Top Speed': 5, 'top speed': 6 } },
+                        { name: 'D', attributes: { 'Top Speed': 7, 'top speed': 8 } }
                     ]
                 })
             );
@@ -193,12 +230,13 @@
         });
 
         test('an imageId survives normalisation, junk does not', function () {
+            const rest = fiveStatDeck().cards.slice(2);
             const kept = Decks.normalize(
                 fiveStatDeck({
                     cards: [
                         { name: 'A', imageId: 'img-abc-1', attributes: fiveStatDeck().cards[0].attributes },
                         { name: 'B', imageId: 'not-an-id', attributes: fiveStatDeck().cards[1].attributes }
-                    ]
+                    ].concat(rest)
                 })
             ).deck;
             equal(kept.cards[0].imageId, 'img-abc-1', 'valid id kept');
@@ -209,7 +247,7 @@
                     cards: [
                         { name: 'A', image: PNG, attributes: fiveStatDeck().cards[0].attributes },
                         { name: 'B', attributes: fiveStatDeck().cards[1].attributes }
-                    ]
+                    ].concat(rest)
                 })
             ).deck;
             equal(inline.cards[0].imageId, null, 'an inline data URL is not stored on the deck record');
@@ -219,6 +257,25 @@
             assert(Decks.validate(null).length === 1, 'null');
             assert(Decks.validate([]).length === 1, 'array');
             assert(Decks.validate('nope').length === 1, 'string');
+        });
+
+        test('a deck may mark one card as the Super Trunfo', function () {
+            const base = fiveStatDeck();
+            const marked = base.cards.map(function (card, index) {
+                return index === 2 ? Object.assign({}, card, { superTrunfo: true }) : card;
+            });
+
+            const result = Decks.normalize(fiveStatDeck({ cards: marked }));
+            deepEqual(result.errors, [], 'one trump is accepted');
+            equal(result.deck.cards[2].superTrunfo, true, 'the mark survives normalisation');
+            equal(result.deck.cards[0].superTrunfo, false, 'and the other cards are plain');
+
+            const twoTrumps = marked.map(function (card, index) {
+                return index === 3 ? Object.assign({}, card, { superTrunfo: true }) : card;
+            });
+            const errors = Decks.validate(fiveStatDeck({ cards: twoTrumps }));
+            equal(errors.length, 1, 'a second trump is refused: ' + errors.join(' | '));
+            assert(/Super Trunfo/.test(errors[0]), 'and the message names the rule');
         });
 
         test('a "lowest wins" stat survives normalisation', function () {
@@ -259,7 +316,7 @@
             equal(list.length, Deck.THEMES.length + 1, 'catalogue grew');
             const entry = list[list.length - 1];
             equal(entry.theme, 'Dinosaurs', 'name');
-            equal(entry.cards, 2, 'card count');
+            equal(entry.cards, 4, 'card count');
             equal(entry.stats, 5, 'stat count');
             equal(entry.builtIn, false, 'custom deck is not built in');
 
@@ -515,6 +572,23 @@
             equal(parsed.decks[0].theme, 'Copy', 'name kept');
         });
 
+        test('the Super Trunfo mark round-trips through JSON', async function () {
+            const store = await freshStore();
+            const base = fiveStatDeck();
+            const cards = base.cards.map(function (card, index) {
+                return index === 1 ? Object.assign({}, card, { superTrunfo: true }) : card;
+            });
+            const saved = await store.save(fiveStatDeck({ cards: cards }));
+
+            const text = store.toJSON(saved.deck, { images: false });
+            assert(/"superTrunfo": true/.test(text), 'the export carries the mark');
+
+            const parsed = await store.importJSON(text);
+            equal(parsed.ok, true, 'parsed: ' + parsed.errors.join(' '));
+            equal(parsed.decks[0].cards[1].superTrunfo, true, 'the mark survived the trip');
+            equal(parsed.decks[0].cards[0].superTrunfo, false, 'and did not spread');
+        });
+
         test('a JSON array of decks is accepted', async function () {
             const store = await freshStore();
             const text = JSON.stringify([fiveStatDeck({ theme: 'One' }), fiveStatDeck({ theme: 'Two' })]);
@@ -578,6 +652,39 @@
                 equal(store.selected(), 'custom-old-1', 'and its selection');
                 equal(store.describe().migrated, 1, 'reported in the description');
                 equal(cells.has(Decks.LEGACY_DECKS_KEY), false, 'the legacy key is cleared');
+            } finally {
+                if (previous === undefined) delete globalThis.localStorage;
+                else globalThis.localStorage = previous;
+            }
+        });
+
+        test('a legacy deck that is not a whole number of groups is reported, not dropped quietly', async function () {
+            const cells = new Map();
+            const previous = globalThis.localStorage;
+            globalThis.localStorage = /** @type {any} */ ({
+                getItem: function (key) {
+                    return cells.has(key) ? cells.get(key) : null;
+                },
+                setItem: function (key, value) {
+                    cells.set(key, String(value));
+                },
+                removeItem: function (key) {
+                    cells.delete(key);
+                }
+            });
+            try {
+                const partial = fiveStatDeck({
+                    id: 'custom-old-2',
+                    cards: fiveStatDeck().cards.slice(0, 2)
+                });
+                cells.set(Decks.LEGACY_DECKS_KEY, JSON.stringify([partial]));
+
+                const store = Decks.createStore(Decks.memoryBackend(), Deck.THEMES);
+                await store.ready();
+
+                equal(store.count(), 0, 'the partial deck was not imported');
+                equal(store.describe().migrated, 0, 'nothing was claimed as imported');
+                equal(store.describe().legacySkipped, 1, 'and the skip is reported');
             } finally {
                 if (previous === undefined) delete globalThis.localStorage;
                 else globalThis.localStorage = previous;

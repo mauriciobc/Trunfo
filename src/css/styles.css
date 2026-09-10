@@ -1837,6 +1837,54 @@ button.attr:disabled {
     background: rgba(255, 255, 255, 0.05);
 }
 
+/* A group header: the four cards under it are one group, 1A–1D … 8A–8D, and a
+   group is what the form adds and removes. It is a label, not a card, so it
+   drops the row background the cards carry. */
+.cards-table tbody tr.cards-table__group {
+    background: transparent;
+}
+
+.cards-table__group th {
+    padding-top: 12px;
+    font-size: 0.66rem;
+    color: var(--text-soft);
+}
+
+.cards-table__group td {
+    text-align: right;
+}
+
+/* The card's code, in the same numbered circle the card face shows. */
+.cards-table__code {
+    vertical-align: middle;
+}
+
+.card-code {
+    display: inline-grid;
+    place-items: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--table) 16%, transparent);
+    color: var(--table);
+    font-size: 0.7rem;
+    font-weight: 800;
+}
+
+/* The Super Trunfo mark: one card per deck, so the boxes behave like radios. */
+.cards-table__trump {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--gold-hi);
+    cursor: pointer;
+}
+
 /* Read-only mirrors of the stat names and units edited above. */
 .cards-table__stat {
     display: block;

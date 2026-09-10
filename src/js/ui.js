@@ -238,12 +238,6 @@
         return hue;
     }
 
-    /** 1-based card number for the badge (the reference deck starts at A1). */
-    function cardNumber(card) {
-        const match = /(\d+)$/.exec(card.id || '');
-        return match ? String(Number(match[1]) + 1) : '';
-    }
-
     /* --------------------------------------------------------------- pieces */
 
     function cardBack() {
@@ -324,7 +318,8 @@
 
         const top = el('header', 'face__top');
         const badge = el('span', 'badge');
-        badge.appendChild(el('span', 'badge__text', 'A' + cardNumber(card)));
+        // The numbered circle of a real card: its group and letter, "1A" … "8D".
+        badge.appendChild(el('span', 'badge__text', card.code || ''));
         top.appendChild(badge);
         const banner = el('span', 'banner');
         banner.appendChild(el('span', 'banner__text', themeOf(card)));
@@ -641,7 +636,13 @@
      */
     function resultStatus(result) {
         return function () {
-            const trump = result.superTrunfo ? t('game.result.trump') : '';
+            // "Super Trunfo!" when the trump won the round; when a "1" card beat
+            // it, that is what the line has to say instead.
+            const trump = result.trumpBeaten
+                ? t('game.result.trumpBeaten')
+                : result.superTrunfo
+                  ? t('game.result.trump')
+                  : '';
             const score = t('game.result.score', {
                 stat: label(result.category),
                 rule: result.direction === Engine.DIRECTIONS.lower ? t('game.result.lowestRule') : '',
@@ -1233,6 +1234,14 @@
             return settings;
         },
         onCategory: onCategory,
+        /**
+         * Repaint the board from the current state. The game repaints itself
+         * after every change; this is for the browser harness, which sets a
+         * state up directly to put one rule on the table.
+         */
+        render: function () {
+            render();
+        },
         /** Programmatic settings, used by the browser test harnesses. */
         configure: function (next) {
             if (!next) return settings;
