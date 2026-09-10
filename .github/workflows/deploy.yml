@@ -8,7 +8,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 # Rapid pushes must not race each other onto Pages.
 concurrency:
@@ -18,6 +20,9 @@ concurrency:
 jobs:
   verify-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -53,18 +58,21 @@ jobs:
       - name: Browser scenarios (minified build)
         run: npm run test:browser:dist
 
+      # This repository publishes through GitHub Actions (Settings -> Pages ->
+      # Source: "GitHub Actions"), so the site is the artifact these steps hand
+      # over. Pushing a gh-pages branch, as this workflow used to, publishes
+      # nothing at all under that setting.
+      - name: Configure Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v5
+
       - name: Upload the built site
-        uses: actions/upload-artifact@v4
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: dist
           path: dist/
 
       - name: Deploy to GitHub Pages
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'chore: deploy to GitHub Pages'
+        id: deployment
+        uses: actions/deploy-pages@v4
