@@ -228,11 +228,19 @@ async function runCase(browser, url, size, budget, shotPath) {
         };
     } finally {
         chrome.kill();
-        await sleep(120);
-        // Chrome's child processes can still be writing their profile as it is
-        // removed; giving up after the first attempt would shadow the real
-        // failure with an ENOTEMPTY.
-        fs.rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+        await sleep(300);
+        /*
+         * Tidy up the throwaway profile — but never at the cost of the result.
+         * Chrome's child processes can still be writing into it after the
+         * parent is signalled, which used to raise ENOTEMPTY out of this block
+         * and fail a scenario that had already passed. Retries first, then a
+         * shrug: it lives in the OS temp directory.
+         */
+        try {
+            fs.rmSync(profile, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+        } catch {
+            /* the OS reclaims its own temp directory */
+        }
     }
 }
 
