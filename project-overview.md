@@ -36,42 +36,47 @@ Task List: MVP Development
 
 Phase 1: Project Setup and Core Game Logic (Estimated: Week 1-3)
 
-    [ ] Set up project directory and basic file structure.
-    [ ] Define the data structure for Top Trumps cards (JavaScript objects).
-    [ ] Create the initial Top Trumps deck data.
-    [ ] Implement function to shuffle the deck.
-    [ ] Implement function to deal cards to player and computer.
-    [ ] Implement core round logic:
-        [ ] Track current player.
-        [ ] Allow player to select a category.
-        [ ] Retrieve attribute values for both cards.
-        [ ] Compare values and determine the winner.
-        [ ] Update card piles.
-        [ ] Implement draw condition logic.
+    [x] Set up project directory and basic file structure.
+    [x] Define the data structure for Top Trumps cards (JavaScript objects).
+    [x] Create the initial Top Trumps deck data.
+    [x] Implement function to shuffle the deck.
+    [x] Implement function to deal cards to player and computer.
+    [x] Implement core round logic:
+        [x] Track current player.
+        [x] Allow player to select a category.
+        [x] Retrieve attribute values for both cards.
+        [x] Compare values and determine the winner.
+        [x] Update card piles.
+        [x] Implement draw condition logic.
 
 Phase 2: User Interface and Basic AI (Estimated: Week 4-7)
 
-    [ ] Create basic HTML structure for the game interface.
-    [ ] Apply basic CSS styling.
-    [ ] Implement JavaScript to display the player's top card.
-    [ ] Implement JavaScript to represent the computer's top card (initially face down).
-    [ ] Add interactive elements (buttons) for category selection.
-    [ ] Implement JavaScript event listeners for category selection.
-    [ ] Implement basic AI opponent logic (select first available attribute).
-    [ ] Implement JavaScript to reveal the computer's card value after selection.
-    [ ] Implement JavaScript to update the visual representation of card counts.
-    [ ] Implement JavaScript to display the round winner.
+    [x] Create basic HTML structure for the game interface.
+    [x] Apply basic CSS styling.
+    [x] Implement JavaScript to display the player's top card.
+    [x] Implement JavaScript to represent the computer's top card (initially face down).
+    [x] Add interactive elements (buttons) for category selection.
+    [x] Implement JavaScript event listeners for category selection.
+    [x] Implement basic AI opponent logic (select first available attribute).
+    [x] Implement JavaScript to reveal the computer's card value after selection.
+    [x] Implement JavaScript to update the visual representation of card counts.
+    [x] Implement JavaScript to display the round winner.
 
 Phase 3: Game Flow and End Condition (Estimated: Week 8-9)
 
-    [ ] Implement logic to manage the sequence of turns.
-    [ ] Implement check for game over condition (one player has all cards).
-    [ ] Implement "Game Over" screen with win/loss indication.
-    [ ] Refine CSS styling for improved visual appeal.
-    [ ] Implement basic user experience enhancements (e.g., instructions).
+    [x] Implement logic to manage the sequence of turns.
+    [x] Implement check for game over condition (one player has all cards).
+    [x] Implement "Game Over" screen with win/loss indication.
+    [x] Refine CSS styling for improved visual appeal.
+    [x] Implement basic user experience enhancements (e.g., instructions).
 
 Phase 4: Testing and Refinement (Estimated: Week 10)
 
-    [ ] Conduct thorough testing of all game functionalities.
-    [ ] Identify and fix any bugs or issues.
-    [ ] Review and refine game logic and user interface based on testing.
+    [x] Conduct thorough testing of all game functionalities.
+    [x] Identify and fix any bugs or issues.
+    [x] Review and refine game logic and user interface based on testing.
+
+---
+
+Status: all four phases are implemented and verified. See README.md for
+what ships and TODO.md for the current checklist.

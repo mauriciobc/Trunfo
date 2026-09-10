@@ -1,0 +1,1695 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Trunfo — browser harness</title>
+        <link rel="stylesheet" href="../src/css/styles.css" />
+    </head>
+    <body>
+        <div class="app">
+            <header class="topbar">
+                <div class="brand">
+                    <span class="brand__mark" aria-hidden="true">T</span>
+                    <span class="brand__name">Trunfo</span>
+                    <span class="brand__tag" id="brand-tag">Browser test</span>
+                </div>
+                <div class="topbar__actions">
+                    <label class="visually-hidden" for="deck-select" data-i18n="game.deck">Deck</label>
+                    <select id="deck-select" class="select"></select>
+                    <button
+                        id="speed-btn"
+                        class="btn btn--ghost"
+                        type="button"
+                        aria-pressed="false"
+                        title="Shorten the reveal and think time"
+                        data-i18n="game.fast"
+                        data-i18n-title="game.fastTitle"
+                    >
+                        Fast
+                    </button>
+                    <button
+                        id="rules-btn"
+                        class="btn btn--ghost"
+                        type="button"
+                        title="How to play"
+                        data-i18n="game.rules"
+                        data-i18n-title="game.rulesTitle"
+                    >
+                        Rules
+                    </button>
+                    <button
+                        id="restart-btn"
+                        class="btn btn--ghost"
+                        type="button"
+                        hidden
+                        data-i18n="game.restart"
+                    >
+                        Restart
+                    </button>
+                    <button
+                        id="locale"
+                        class="btn btn--ghost btn--locale"
+                        type="button"
+                        data-locale-toggle
+                        aria-label="Switch language to Português (BR)"
+                    >
+                        <span class="flag" aria-hidden="true">🇬🇧</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="board" id="board">
+                <section class="side side--computer">
+                    <div class="side__head">
+                        <h2 data-i18n="game.computer">Computer</h2>
+                        <p class="counter">
+                            <span id="computer-count">0</span> <span id="computer-unit">cards</span>
+                        </p>
+                    </div>
+                    <div id="computer-slot" class="card-slot card-slot--computer">
+                        <div id="computer-stack" class="card-stack" aria-hidden="true"></div>
+                        <div id="computer-card" class="card card--back"></div>
+                    </div>
+                </section>
+                <section class="side side--player">
+                    <div class="side__head">
+                        <h2 data-i18n="game.you">You</h2>
+                        <p class="counter">
+                            <span id="player-count">0</span> <span id="player-unit">cards</span>
+                        </p>
+                    </div>
+                    <div id="player-slot" class="card-slot card-slot--player">
+                        <div id="player-stack" class="card-stack" aria-hidden="true"></div>
+                        <div id="player-card" class="card"></div>
+                    </div>
+                </section>
+            </main>
+
+            <footer class="statusbar">
+                <p id="message" class="message" role="status" aria-live="polite" data-i18n="game.idle">
+                    Press “Start game” to shuffle and deal.
+                </p>
+                <div class="statusbar__actions">
+                    <p class="round" hidden>
+                        <span data-i18n="game.round">Round</span> <span id="round-count">0</span>
+                    </p>
+                    <p id="pot" class="pot" hidden>
+                        <span class="pot__label" data-i18n="game.pot">Pot</span> <span id="pot-count">0</span>
+                    </p>
+                    <button id="start-btn" class="btn btn--primary" type="button" data-i18n="game.start">
+                        Start game
+                    </button>
+                </div>
+            </footer>
+        </div>
+
+        <div id="rules" class="overlay" hidden>
+            <div class="overlay__panel" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+                <h2 id="rules-title" data-i18n="rules.title">How to play</h2>
+                <ol class="rules">
+                    <li>Test</li>
+                </ol>
+                <button id="rules-close" class="btn btn--primary" type="button" data-i18n="rules.close">
+                    Got it
+                </button>
+            </div>
+        </div>
+
+        <div id="overlay" class="overlay" hidden>
+            <div class="overlay__panel" role="dialog" aria-modal="true" aria-labelledby="overlay-title">
+                <h2 id="overlay-title" data-i18n="over.title">You win!</h2>
+                <p id="overlay-detail" class="overlay__detail"></p>
+                <dl id="overlay-stats" class="overlay__stats"></dl>
+                <div class="overlay__actions">
+                    <button
+                        id="overlay-restart"
+                        class="btn btn--primary"
+                        type="button"
+                        data-i18n="over.playAgain"
+                    >
+                        Play again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results sink: kept out of flow and invisible so it never affects the
+         layout measurements, but its text is still in the DOM for --dump-dom. -->
+        <pre
+            id="out"
+            style="
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                opacity: 0;
+                pointer-events: none;
+            "
+        >
+running</pre>
+
+        <script src="../src/js/i18n.js"></script>
+        <script src="../src/js/deck.js"></script>
+        <script src="../src/js/engine.js"></script>
+        <script src="../src/js/decks.js"></script>
+        <script src="../src/js/paper.js"></script>
+        <script src="../src/js/ui.js"></script>
+        <script>
+            (function () {
+                'use strict';
+
+                // The harness lives in tests/, so bundled deck artwork has to be
+                // resolved against the source tree rather than the page.
+                window.TRUNFO_ASSET_BASE = '../src/';
+
+                var Engine = window.TrunfoEngine;
+                // Letters and digits only; ids are camelCase (customDeck).
+                var CASE = (location.search.match(/case=([A-Za-z0-9]+)/) || [])[1] || 'playthrough';
+                var errors = [];
+                var CHECKS = [];
+
+                window.addEventListener('error', function (e) {
+                    errors.push(String(e.message));
+                    // Report straight away: a thrown callback would otherwise
+                    // leave the harness silent and look like a timeout.
+                    report();
+                });
+                window.addEventListener('unhandledrejection', function (e) {
+                    errors.push('rejection: ' + e.reason);
+                });
+
+                function check(name, condition, extra) {
+                    CHECKS.push(
+                        (condition ? 'PASS' : 'FAIL') +
+                            ' ' +
+                            name +
+                            (extra !== undefined ? ' :: ' + extra : '')
+                    );
+                }
+
+                function byId(id) {
+                    return document.getElementById(id);
+                }
+
+                /** Resolve once an <img> has decoded (or clearly failed). */
+                function waitForImage(image) {
+                    return new Promise(function (resolve) {
+                        if (!image) {
+                            resolve(false);
+                            return;
+                        }
+                        if (image.complete && image.naturalWidth > 0) {
+                            resolve(true);
+                            return;
+                        }
+                        var settled = false;
+                        var finish = function (ok) {
+                            if (settled) return;
+                            settled = true;
+                            resolve(ok);
+                        };
+                        image.addEventListener('load', function () {
+                            finish(image.naturalWidth > 0);
+                        });
+                        image.addEventListener('error', function () {
+                            finish(false);
+                        });
+                        window.setTimeout(function () {
+                            finish(image.complete && image.naturalWidth > 0);
+                        }, 5000);
+                    });
+                }
+
+                function overlayVisible() {
+                    return byId('overlay').hidden === false;
+                }
+
+                function report() {
+                    check('no uncaught page errors', errors.length === 0, errors.join(' | '));
+                    var failed = CHECKS.filter(function (c) {
+                        return c.indexOf('FAIL') === 0;
+                    }).length;
+                    byId('out').textContent =
+                        CHECKS.join('\n') + '\n---\nTOTAL=' + CHECKS.length + ' FAILED=' + failed;
+                    document.title = failed ? 'BROWSER-TESTS-FAILED' : 'BROWSER-TESTS-PASSED';
+                }
+
+                function bestCategory(state) {
+                    var card = Engine.getTopCard(state.playerHand);
+                    if (!card) return state.attributeKeys[0];
+                    var best = state.attributeKeys[0];
+                    var score = -Infinity;
+                    state.attributeKeys.forEach(function (key) {
+                        // Direction-aware, so a "lowest wins" stat is scored too.
+                        var normalised = Engine.attributeScore(state, key, card.attributes[key]);
+                        if (normalised > score) {
+                            score = normalised;
+                            best = key;
+                        }
+                    });
+                    return best;
+                }
+
+                /* ---------------------------------------------------- playthrough */
+
+                // Two-card deck: exactly one round decides the game, so the
+                // playthrough is quick and its length never depends on the shuffle.
+                var PLAYTHROUGH_THEME = {
+                    id: 'browser-test',
+                    theme: 'Browser Test',
+                    attributes: ['size', 'speed'],
+                    units: { size: 'cm', speed: 'km/h' },
+                    cards: [
+                        { name: 'A', attributes: { size: 4, speed: 1 }, icon: '🦁' },
+                        { name: 'B', attributes: { size: 1, speed: 2 }, icon: '🐘' }
+                    ]
+                };
+
+                function playthrough() {
+                    var sawFaceDown = false,
+                        sawReveal = false,
+                        sawEnabledButton = false;
+                    var sawStackLayers = false,
+                        sawDynamics = false,
+                        sawFlip = false,
+                        sawStatFill = false;
+                    var sawBadge = false,
+                        sawBanner = false,
+                        sawArt = false,
+                        sawStats = false,
+                        sawSeal = false;
+                    var sawHighlightSides = false,
+                        sawRoundCounter = false;
+                    var iterations = 0;
+
+                    function tick() {
+                        var state = window.TrunfoUI.getState();
+                        if (!state) {
+                            finishPlaythrough(null);
+                            return;
+                        }
+
+                        if (document.querySelector('.badge__text')) sawBadge = true;
+                        if (document.querySelector('.banner__text')) sawBanner = true;
+                        if (document.querySelector('.face__art')) sawArt = true;
+                        if (document.querySelectorAll('.attrs .attr').length >= 2) sawStats = true;
+                        if (document.querySelector('.seal__text')) sawSeal = true;
+                        if (
+                            document.querySelector('.card-slot.is-winning .attr.is-winner') &&
+                            document.querySelector('.card-slot.is-losing .attr.is-loser')
+                        ) {
+                            sawHighlightSides = true;
+                        }
+                        if (document.querySelectorAll('.card-stack__layer').length > 0) sawStackLayers = true;
+                        if (document.querySelectorAll('.attr__fill').length > 0) sawStatFill = true;
+                        if (
+                            document.querySelector(
+                                '.card-slot.is-winning, .card-slot.is-losing, .card-slot.is-potted'
+                            )
+                        ) {
+                            sawDynamics = true;
+                        }
+                        var computerCard = byId('computer-card');
+                        if (
+                            computerCard.classList.contains('flip-in') ||
+                            computerCard.classList.contains('flip-out')
+                        ) {
+                            sawFlip = true;
+                        }
+                        if (byId('round-count').textContent === '1') sawRoundCounter = true;
+
+                        if (computerCard.classList.contains('card--back')) sawFaceDown = true;
+                        else sawReveal = true;
+
+                        if (state.phase !== 'gameover' && state.turn === 'player') {
+                            var button = document.querySelector('#player-card button.attr:not(:disabled)');
+                            if (button) {
+                                sawEnabledButton = true;
+                                button.click();
+                            }
+                        }
+
+                        if ((state.phase === 'gameover' && overlayVisible()) || iterations++ > 20000) {
+                            finishPlaythrough(state);
+                            return;
+                        }
+                        window.setTimeout(tick, 15);
+                    }
+
+                    function finishPlaythrough(state) {
+                        if (!state) {
+                            check('game state created', false, 'no state');
+                            report();
+                            return;
+                        }
+
+                        var counts = {
+                            player: state.playerHand.length,
+                            computer: state.computerHand.length,
+                            drawPile: state.drawPile.length
+                        };
+
+                        check('game reached game over', state.phase === 'gameover', String(state.phase));
+                        check('a winner is recorded', state.winner !== null, String(state.winner));
+                        check(
+                            'all cards accounted for',
+                            counts.player + counts.computer + counts.drawPile === 2,
+                            JSON.stringify(counts)
+                        );
+                        check('at least one round was played', state.round > 0, 'rounds=' + state.round);
+                        check('player could click a category at least once', sawEnabledButton);
+                        check('computer card was face down first', sawFaceDown);
+                        check('computer card was revealed', sawReveal);
+                        check('the round counter tracks play', sawRoundCounter);
+                        check('game over overlay is visible', overlayVisible());
+                        check(
+                            'overlay title is populated',
+                            byId('overlay-title').textContent.trim().length > 0,
+                            byId('overlay-title').textContent
+                        );
+                        check(
+                            'overlay detail mentions the score',
+                            /you \d+, computer \d+/i.test(byId('overlay-detail').textContent),
+                            byId('overlay-detail').textContent
+                        );
+                        check(
+                            'overlay summary is populated',
+                            byId('overlay-stats').children.length >= 6,
+                            byId('overlay-stats').children.length + ' rows'
+                        );
+                        check(
+                            'the computer starts with no fixed mode',
+                            state.aiStrategy === Engine.MIXED_AI,
+                            state.aiStrategy
+                        );
+                        check(
+                            'no difficulty control is offered',
+                            byId('difficulty') === null && byId('deck-select') !== null
+                        );
+                        check(
+                            'the default game shows no Super Trunfo seal',
+                            document.querySelector('.face.is-super') === null
+                        );
+                        check(
+                            'player counter matches state',
+                            byId('player-count').textContent === String(counts.player)
+                        );
+                        check(
+                            'computer counter matches state',
+                            byId('computer-count').textContent === String(counts.computer)
+                        );
+                        check('start button is hidden after game over', byId('start-btn').hidden === true);
+                        check('restart button is available', byId('restart-btn').hidden === false);
+
+                        check('card renders a numbered badge', sawBadge);
+                        check('card renders the theme banner', sawBanner);
+                        check('card renders a framed art window', sawArt);
+                        check('card renders the stats table rows', sawStats);
+                        check('card renders the starburst seal', sawSeal);
+                        check('winner and loser rows are coloured per side', sawHighlightSides);
+                        check('pile stack layers are rendered', sawStackLayers);
+                        check('stat magnitude fills are rendered', sawStatFill);
+                        check('round dynamics classes were applied', sawDynamics);
+                        check('card flip animation was applied', sawFlip);
+
+                        // Stylesheet really applied, probed via computed style because
+                        // file:// stylesheets hide cssRules.
+                        var probe = document.createElement('div');
+                        probe.className = 'card-slot is-losing';
+                        var probeCard = document.createElement('div');
+                        probeCard.className = 'card';
+                        probe.appendChild(probeCard);
+                        document.body.appendChild(probe);
+                        var probeStyle = window.getComputedStyle(probeCard);
+                        var aspect = probeStyle.aspectRatio;
+                        var animName = probeStyle.animationName;
+                        probe.remove();
+                        check(
+                            'stylesheet is applied to cards',
+                            String(aspect).replace(/\s/g, '') === '5/7',
+                            String(aspect)
+                        );
+                        check(
+                            'round dynamics animation resolves',
+                            /fly-up/.test(String(animName)),
+                            String(animName)
+                        );
+
+                        // Accessibility of the modal.
+                        var app = document.querySelector('.app');
+                        check('background is inert while the dialog is open', app.hasAttribute('inert'));
+                        document.dispatchEvent(
+                            new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })
+                        );
+                        check('Escape dismisses the game-over dialog', byId('overlay').hidden === true);
+                        check('inert is cleared once the dialog closes', !app.hasAttribute('inert'));
+
+                        report();
+                    }
+
+                    window.TrunfoUI.startGame(PLAYTHROUGH_THEME);
+                    window.setTimeout(tick, 1200);
+                }
+
+                /* ------------------------------------------------------------ draw */
+
+                // Three identical cards: every comparison is a draw, so the pot
+                // sweep and the stalemate ending are guaranteed.
+                var DRAW_THEME = {
+                    id: 'draw-test',
+                    theme: 'Draw Test',
+                    attributes: ['size', 'speed'],
+                    units: { size: 'cm', speed: 'km/h' },
+                    cards: [
+                        { name: 'A', attributes: { size: 5, speed: 5 }, icon: '🦁' },
+                        { name: 'B', attributes: { size: 5, speed: 5 }, icon: '🐘' },
+                        { name: 'C', attributes: { size: 5, speed: 5 }, icon: '🐆' }
+                    ]
+                };
+
+                function draw() {
+                    var sawPotted = false,
+                        sawPotChip = false,
+                        sawDrawRow = false,
+                        sawPotBump = false;
+                    var iterations = 0;
+
+                    function tick() {
+                        var state = window.TrunfoUI.getState();
+                        if (!state) {
+                            finishDraw(null);
+                            return;
+                        }
+
+                        if (document.querySelectorAll('.card-slot.is-potted').length === 2) sawPotted = true;
+                        if (byId('pot').hidden === false && Number(byId('pot-count').textContent) > 0)
+                            sawPotChip = true;
+                        if (document.querySelector('.attr.is-draw')) sawDrawRow = true;
+                        if (byId('pot').classList.contains('is-bumped')) sawPotBump = true;
+
+                        var button = document.querySelector('#player-card button.attr:not(:disabled)');
+                        if (button) button.click();
+
+                        if ((state.phase === 'gameover' && overlayVisible()) || iterations++ > 20000) {
+                            finishDraw(state);
+                            return;
+                        }
+                        window.setTimeout(tick, 15);
+                    }
+
+                    function finishDraw(state) {
+                        if (!state) {
+                            check('draw game created', false, 'no state');
+                            report();
+                            return;
+                        }
+                        var counts = Engine.getCardCounts(state);
+
+                        check('the draw reached game over', state.phase === 'gameover', String(state.phase));
+                        check(
+                            'the ending is a stalemate',
+                            state.reason === 'stalemate',
+                            String(state.reason)
+                        );
+                        check('nobody won', state.winner === Engine.DRAW, String(state.winner));
+                        check('both cards were swept to the pot', sawPotted);
+                        check('the compared row is marked as a draw', sawDrawRow);
+                        check('the pot chip became visible', sawPotChip);
+                        check('the pot chip bumped', sawPotBump);
+                        check(
+                            'the unclaimed cards stay in the pot',
+                            counts.drawPile === 3,
+                            JSON.stringify(counts)
+                        );
+                        check(
+                            'overlay explains the draw',
+                            /draw|pot/i.test(byId('overlay-detail').textContent),
+                            byId('overlay-detail').textContent
+                        );
+                        check(
+                            'cards are conserved',
+                            counts.player + counts.computer + counts.drawPile === 3,
+                            JSON.stringify(counts)
+                        );
+                        report();
+                    }
+
+                    window.TrunfoUI.configure({ fast: false, ai: 'adaptive' });
+                    window.TrunfoUI.startGame(DRAW_THEME);
+                    window.setTimeout(tick, 1200);
+                }
+
+                /* ------------------------------------------------------------ long */
+
+                // The real 16-card deck played to completion at fast speed.
+                function longGame() {
+                    var maxRoundsSeen = 0;
+                    var iterations = 0;
+                    var sawSuperFace = false;
+
+                    function tick() {
+                        var state = window.TrunfoUI.getState();
+                        if (!state) {
+                            finishLong(null);
+                            return;
+                        }
+
+                        if (state.round > maxRoundsSeen) maxRoundsSeen = state.round;
+                        if (document.querySelector('.face.is-super')) sawSuperFace = true;
+
+                        if (state.phase === 'gameover') {
+                            if (!overlayVisible()) {
+                                window.setTimeout(tick, 15);
+                                return;
+                            }
+                            finishLong(state);
+                            return;
+                        }
+                        if (iterations++ > 40000) {
+                            finishLong(state);
+                            return;
+                        }
+
+                        if (state.turn === 'player') window.TrunfoUI.onCategory(bestCategory(state));
+                        window.setTimeout(tick, 15);
+                    }
+
+                    function finishLong(state) {
+                        if (!state) {
+                            check('long game created', false, 'no state');
+                            report();
+                            return;
+                        }
+                        var counts = Engine.getCardCounts(state);
+
+                        check(
+                            'a full 16-card game finishes',
+                            state.phase === 'gameover',
+                            String(state.phase)
+                        );
+                        check(
+                            'it finishes within the round limit',
+                            state.round <= state.roundLimit,
+                            state.round + ' / ' + state.roundLimit
+                        );
+                        check('a winner is recorded', state.winner !== null, String(state.winner));
+                        check(
+                            'the shipped deck ends with one player holding every card',
+                            state.winner === 'draw' ||
+                                (state.winner === 'player' ? counts.player : counts.computer) === 16,
+                            state.reason + ' :: ' + JSON.stringify(counts)
+                        );
+                        check('the shipped deck deals no Super Trunfo card', !sawSuperFace);
+                        check(
+                            'the reason is recorded',
+                            typeof state.reason === 'string',
+                            String(state.reason)
+                        );
+                        check(
+                            'every card is accounted for',
+                            counts.player + counts.computer + counts.drawPile === 16,
+                            JSON.stringify(counts)
+                        );
+                        check(
+                            'the round counter matches the engine',
+                            byId('round-count').textContent === String(state.round),
+                            byId('round-count').textContent + ' vs ' + state.round
+                        );
+                        check(
+                            'the summary reports every round',
+                            byId('overlay-stats').textContent.indexOf(String(state.round)) !== -1
+                        );
+                        // The mode pinned above is the only one the computer may
+                        // have used, and the summary must say so with a count.
+                        var summary = Engine.summarise(state);
+                        var logged = state.log.filter(function (entry) {
+                            return entry.mode === 'adaptive';
+                        }).length;
+                        var stats = byId('overlay-stats').textContent;
+                        check(
+                            'the biggest pot row carries its number',
+                            /\d+ cards?/.test(stats),
+                            stats.slice(0, 200)
+                        );
+                        // Whether the computer ever led depends on the deal, so
+                        // the row must either name the mode with its count or say
+                        // there were none.
+                        check(
+                            'the summary names the mode the computer played, or none',
+                            logged > 0
+                                ? new RegExp('best number ×' + logged, 'i').test(stats)
+                                : /—\s*$/.test(stats.trim()),
+                            stats.slice(-70)
+                        );
+                        check(
+                            'the summary count matches the round log',
+                            summary.aiModes.adaptive === logged,
+                            summary.aiModes.adaptive + ' vs ' + logged + ' logged rounds'
+                        );
+                        check(
+                            'a pinned mode kept the others out of the log',
+                            summary.aiModes.random === 0 && summary.aiModes.best === 0,
+                            JSON.stringify(summary.aiModes)
+                        );
+                        check(
+                            'the default mixed picker was overridden',
+                            state.aiStrategy === 'adaptive',
+                            state.aiStrategy
+                        );
+                        report();
+                    }
+
+                    window.TrunfoUI.configure({ fast: true, ai: 'adaptive' });
+                    window.TrunfoUI.startGame();
+                    window.setTimeout(tick, 900);
+                }
+
+                /* ------------------------------------------------------ responsive */
+
+                function responsive() {
+                    window.TrunfoUI.configure({ fast: true, ai: 'adaptive' });
+                    window.TrunfoUI.startGame();
+
+                    window.setTimeout(function () {
+                        var card = byId('player-card');
+                        var face = card.querySelector('.face');
+                        var banner = card.querySelector('.banner__text');
+                        var attrs = card.querySelector('.attrs');
+                        var footer = card.querySelector('.face__footer');
+                        var head = document.querySelector('.side--player .side__head');
+                        var width = card.getBoundingClientRect().width;
+                        var overflow = document.documentElement.scrollHeight - window.innerHeight;
+                        // The design brief defers mobile: below a 700px-wide desktop
+                        // floor a little scrolling is accepted rather than shrinking
+                        // the card below legibility.
+                        var supported = window.innerWidth >= 700;
+
+                        check('card is at least 150px wide', width >= 150, width.toFixed(0) + 'px');
+                        check(
+                            supported
+                                ? 'the page does not need vertical scrolling'
+                                : 'narrow-viewport overflow stays modest',
+                            supported ? overflow <= 4 : overflow <= 130,
+                            overflow + 'px'
+                        );
+                        check(
+                            'card content fits inside the face',
+                            face.scrollHeight <= face.clientHeight + 1,
+                            face.scrollHeight + ' vs ' + face.clientHeight
+                        );
+                        check(
+                            'the title banner is not truncated',
+                            banner.scrollWidth <= banner.clientWidth + 1,
+                            banner.scrollWidth + ' vs ' + banner.clientWidth
+                        );
+                        check(
+                            'the stats table stays inside the card',
+                            attrs.getBoundingClientRect().bottom <= card.getBoundingClientRect().bottom + 1
+                        );
+                        check(
+                            'the footer stays on one line',
+                            footer.offsetHeight <= 24,
+                            footer.offsetHeight + 'px'
+                        );
+                        check(
+                            'the side header stays on one line',
+                            head.offsetHeight <= 30,
+                            head.offsetHeight + 'px'
+                        );
+                        check(
+                            'the stat value is legible',
+                            parseFloat(
+                                window.getComputedStyle(card.querySelector('.attr__value')).fontSize
+                            ) >= 8,
+                            window.getComputedStyle(card.querySelector('.attr__value')).fontSize
+                        );
+                        var topbarH = document.querySelector('.topbar').getBoundingClientRect().height;
+                        var statusH = document.querySelector('.statusbar').getBoundingClientRect().height;
+                        check('the topbar stays compact', topbarH <= 160, topbarH.toFixed(0) + 'px');
+                        check('the statusbar stays compact', statusH <= 120, statusH.toFixed(0) + 'px');
+                        report();
+                    }, 1400);
+                }
+
+                /* ------------------------------------------------------------ solo */
+
+                // A one-card deck is already over when it is dealt. It must not
+                // hang on an unplayable board, and the result must be reported.
+                var SOLO_THEME = {
+                    id: 'solo-test',
+                    theme: 'Solo Test',
+                    attributes: ['size'],
+                    units: { size: 'cm' },
+                    cards: [{ name: 'Solo', attributes: { size: 1 }, icon: '🦁' }]
+                };
+
+                function solo() {
+                    window.TrunfoUI.configure({ fast: true, ai: 'random' });
+                    window.TrunfoUI.startGame(SOLO_THEME);
+
+                    window.setTimeout(function () {
+                        var state = window.TrunfoUI.getState();
+                        var counts = Engine.getCardCounts(state);
+
+                        check(
+                            'a one-card deck settles at deal time',
+                            state.phase === 'gameover',
+                            String(state.phase)
+                        );
+                        check('it is a stalemate', state.reason === 'stalemate', String(state.reason));
+                        check(
+                            'no card is left clickable',
+                            document.querySelectorAll('#player-card button.attr').length === 0
+                        );
+                        check('the result panel is shown instead of a dead board', overlayVisible());
+                        check(
+                            'the unplayable card stays in the pot',
+                            counts.drawPile === 1,
+                            JSON.stringify(counts)
+                        );
+                        check(
+                            'start is hidden and restart is offered',
+                            byId('start-btn').hidden === true && byId('restart-btn').hidden === false
+                        );
+                        report();
+                    }, 1400);
+                }
+
+                /* ------------------------------------------------------------ decks */
+
+                // A custom five-stat deck must be selectable on the game page,
+                // render every stat, and show the artwork stored with it.
+                function customDeck() {
+                    var store = window.TrunfoDecks.store();
+                    var PNG =
+                        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+
+                    store
+                        .ready()
+                        .then(function () {
+                            return store.putImage(PNG, { width: 1, height: 1 });
+                        })
+                        .then(function (stored) {
+                            check(
+                                'artwork is stored in the local database',
+                                stored.ok,
+                                stored.errors.join(' ')
+                            );
+                            return store.save({
+                                theme: 'Test Dinosaurs',
+                                attributes: ['length', 'weight', 'speed', 'bite_force', 'age'],
+                                labels: {
+                                    length: 'Length',
+                                    weight: 'Weight',
+                                    speed: 'Speed',
+                                    bite_force: 'Bite Force',
+                                    age: 'Age'
+                                },
+                                units: {
+                                    length: 'm',
+                                    weight: 't',
+                                    speed: 'km/h',
+                                    bite_force: 'kN',
+                                    age: 'years'
+                                },
+                                cards: [
+                                    {
+                                        name: 'T-Rex',
+                                        imageId: stored.image.id,
+                                        attributes: {
+                                            length: 12,
+                                            weight: 8,
+                                            speed: 27,
+                                            bite_force: 35,
+                                            age: 28
+                                        }
+                                    },
+                                    {
+                                        name: 'Triceratops',
+                                        imageId: stored.image.id,
+                                        attributes: {
+                                            length: 9,
+                                            weight: 6,
+                                            speed: 24,
+                                            bite_force: 12,
+                                            age: 30
+                                        }
+                                    }
+                                ]
+                            });
+                        })
+                        .then(function (saved) {
+                            check(
+                                'a five-stat deck saves through the store',
+                                saved.ok,
+                                saved.errors.join(' ')
+                            );
+                            return store.select(saved.deck.id);
+                        })
+                        .then(function () {
+                            window.TrunfoUI.startGame();
+                            var state = window.TrunfoUI.getState();
+                            var options = Array.prototype.map
+                                .call(document.querySelectorAll('#deck-select option'), function (option) {
+                                    return option.textContent;
+                                })
+                                .join(' | ');
+                            var labels = Array.prototype.map
+                                .call(
+                                    document.querySelectorAll('#player-card .attr__label'),
+                                    function (node) {
+                                        return node.firstChild.textContent.trim();
+                                    }
+                                )
+                                .join(', ');
+
+                            check(
+                                'the deck picker lists the custom deck',
+                                /Test Dinosaurs/.test(options),
+                                options
+                            );
+                            check(
+                                'the game runs on the custom deck',
+                                state.theme === 'Test Dinosaurs',
+                                state.theme
+                            );
+                            check(
+                                'all five stats are in play',
+                                state.attributeKeys.length === 5,
+                                String(state.attributeKeys.length)
+                            );
+                            check(
+                                'the brand tag names the deck',
+                                byId('brand-tag').textContent === 'Test Dinosaurs',
+                                byId('brand-tag').textContent
+                            );
+                            check(
+                                'the card renders five stat rows',
+                                document.querySelectorAll('#player-card .attr').length === 5,
+                                String(document.querySelectorAll('#player-card .attr').length)
+                            );
+                            check(
+                                'the stat labels come from the deck',
+                                labels === 'Length, Weight, Speed, Bite Force, Age',
+                                labels
+                            );
+                            check(
+                                'every stat is clickable',
+                                document.querySelectorAll('#player-card button.attr:not(:disabled)')
+                                    .length === 5
+                            );
+                            check(
+                                'the card artwork comes from the database',
+                                document.querySelector('#player-card .face__photo') !== null
+                            );
+                            check(
+                                'the artwork renders as an image, not an emoji',
+                                document.querySelector('#player-card .face__icon') === null
+                            );
+                            check(
+                                'a one-card pile reads in the singular',
+                                /(^|\s)1 card(\s|$)/.test(
+                                    document.querySelector('.side--player .counter').textContent
+                                ),
+                                JSON.stringify(document.querySelector('.side--player .counter').textContent)
+                            );
+                            report();
+                        })
+                        .catch(function (error) {
+                            check('the custom-deck case ran to completion', false, error.message);
+                            report();
+                        });
+                }
+
+                /* ------------------------------------------------------------- cars */
+
+                // The second built-in deck: five car stats, selectable and playable.
+                function cars() {
+                    var store = window.TrunfoDecks.store();
+
+                    store
+                        .ready()
+                        .then(function () {
+                            var deck = store.get('electric-cars-2026');
+                            check(
+                                'the electric-car deck ships as a built-in',
+                                !!deck,
+                                deck ? deck.theme : 'missing'
+                            );
+                            return store.select('electric-cars-2026');
+                        })
+                        .then(function () {
+                            window.TrunfoUI.startGame();
+                            var state = window.TrunfoUI.getState();
+                            var options = Array.prototype.map
+                                .call(document.querySelectorAll('#deck-select option'), function (option) {
+                                    return option.textContent;
+                                })
+                                .join(' | ');
+                            var labels = Array.prototype.map
+                                .call(
+                                    document.querySelectorAll('#player-card .attr__label'),
+                                    function (node) {
+                                        return node.firstChild.textContent.trim();
+                                    }
+                                )
+                                .join(', ');
+
+                            check('the car deck runs', state.theme === '2026 Electric Cars', state.theme);
+                            check(
+                                'five car stats are in play',
+                                state.attributeKeys.length === 5,
+                                String(state.attributeKeys.length)
+                            );
+                            check(
+                                'car stat labels come from the deck',
+                                labels === 'Range, Power, Top speed, Fast charge, 0\u2013100 km/h',
+                                labels
+                            );
+                            var carDeck = window.TrunfoDeck.getTheme('electric-cars-2026');
+                            check(
+                                'the car deck exercises a lowest-wins stat',
+                                carDeck.attributes.some(function (key) {
+                                    return carDeck.directions[key] === 'lower';
+                                }),
+                                JSON.stringify(carDeck.directions)
+                            );
+                            check(
+                                'the car card renders five stat rows',
+                                document.querySelectorAll('#player-card .attr').length === 5,
+                                String(document.querySelectorAll('#player-card .attr').length)
+                            );
+                            check(
+                                'every car stat is clickable',
+                                document.querySelectorAll('#player-card button.attr:not(:disabled)')
+                                    .length === 5
+                            );
+                            check(
+                                'the picker offers both built-in decks',
+                                /Awesome Animals/.test(options) && /2026 Electric Cars/.test(options),
+                                options
+                            );
+
+                            // The photograph loads asynchronously, so wait for it.
+                            var photo = document.querySelector('#player-card .face__photo');
+                            check('the car card shows a photograph', photo !== null);
+                            return waitForImage(photo).then(function (loaded) {
+                                check(
+                                    'the bundled photograph actually loads',
+                                    loaded,
+                                    photo
+                                        ? photo.getAttribute('src') +
+                                              ' -> ' +
+                                              photo.naturalWidth +
+                                              'x' +
+                                              photo.naturalHeight
+                                        : 'no image element'
+                                );
+                                report();
+                            });
+                        })
+                        .catch(function (error) {
+                            check('the car-deck case ran to completion', false, error.message);
+                            report();
+                        });
+                }
+
+                /* ------------------------------------------------------------ paper */
+
+                // The card stock is generated by a WebGL fragment shader, with
+                // the CSS gradients as the documented fallback.
+                function paper() {
+                    window.TrunfoUI.startGame();
+
+                    var Paper = window.TrunfoPaper;
+                    var root = document.documentElement;
+                    var face = document.querySelector('#player-card .face');
+
+                    check('the shader module loaded', !!Paper);
+                    check('a card is on screen to texture', !!face);
+                    if (!Paper || !face) {
+                        report();
+                        return;
+                    }
+
+                    check(
+                        'the shader compiles on this machine',
+                        Paper.isSupported(),
+                        JSON.stringify(Paper.status())
+                    );
+
+                    var tile = Paper.texture();
+                    var isDataUrl = typeof tile === 'string' && tile.indexOf('data:image/') === 0;
+                    check(
+                        'the shader renders a tile',
+                        isDataUrl,
+                        isDataUrl ? Math.round(tile.length / 1024) + ' KB' : String(tile)
+                    );
+                    check(
+                        'the tile carries real texture, not a flat fill',
+                        isDataUrl && tile.length > 2000,
+                        isDataUrl ? String(tile.length) : '-'
+                    );
+
+                    check(
+                        'the texture is published to CSS',
+                        /url\("data:image\//.test(getComputedStyle(root).getPropertyValue('--paper-grain'))
+                    );
+                    check(
+                        'the tile size is published too',
+                        /px/.test(getComputedStyle(root).getPropertyValue('--paper-grain-size'))
+                    );
+                    check(
+                        'the card paints the texture as a full-card overlay',
+                        /data:image\//.test(getComputedStyle(face, '::after').backgroundImage),
+                        getComputedStyle(face, '::after').backgroundImage.slice(0, 40)
+                    );
+                    check(
+                        'the overlay never swallows a click',
+                        getComputedStyle(face, '::after').pointerEvents === 'none',
+                        getComputedStyle(face, '::after').pointerEvents
+                    );
+                    check(
+                        'the overlay blends into the card only',
+                        getComputedStyle(face, '::after').mixBlendMode === 'multiply' &&
+                            getComputedStyle(face).isolation === 'isolate',
+                        getComputedStyle(face, '::after').mixBlendMode +
+                            ' / ' +
+                            getComputedStyle(face).isolation
+                    );
+
+                    // The back is a different surface: lacquered, not matte.
+                    var back = document.querySelector('#computer-card .back');
+                    var sheen = Paper.texture('gloss');
+                    check('the card back is on screen', !!back);
+                    check(
+                        'the gloss shader renders its own tile',
+                        typeof sheen === 'string' && sheen.indexOf('data:image/') === 0,
+                        typeof sheen === 'string' ? Math.round(sheen.length / 1024) + ' KB' : String(sheen)
+                    );
+                    check('the gloss tile is not the paper tile', sheen !== tile);
+                    check(
+                        'the sheen is published to CSS',
+                        /url\("data:image\//.test(getComputedStyle(root).getPropertyValue('--gloss-sheen'))
+                    );
+                    check(
+                        'the back paints the sheen texture',
+                        /data:image\//.test(getComputedStyle(back, '::after').backgroundImage),
+                        getComputedStyle(back, '::after').backgroundImage.slice(0, 40)
+                    );
+                    check(
+                        'the back is shiny, not matte',
+                        getComputedStyle(back, '::after').mixBlendMode === 'screen' &&
+                            getComputedStyle(back, '::before').mixBlendMode === 'screen',
+                        getComputedStyle(back, '::after').mixBlendMode +
+                            ' / ' +
+                            getComputedStyle(back, '::before').mixBlendMode
+                    );
+                    check(
+                        'the back carries a specular highlight',
+                        /radial-gradient/.test(getComputedStyle(back, '::before').backgroundImage)
+                    );
+                    check(
+                        'the gloss overlays never swallow a click',
+                        getComputedStyle(back, '::after').pointerEvents === 'none' &&
+                            getComputedStyle(back, '::before').pointerEvents === 'none'
+                    );
+
+                    // The reflection belongs to the lamp over the table: the cursor
+                    // leans the card and the lean moves the light. Asserted below,
+                    // once the opening deal has settled.
+
+                    // Fallback: with no WebGL the gradients must stand alone.
+                    var original = HTMLCanvasElement.prototype.getContext;
+                    HTMLCanvasElement.prototype.getContext = function () {
+                        return null;
+                    };
+                    root.style.removeProperty('--paper-grain');
+                    root.style.removeProperty('--gloss-sheen');
+                    Paper.reset();
+
+                    var applied = Paper.apply(root, {});
+                    HTMLCanvasElement.prototype.getContext = original;
+
+                    check(
+                        'the shader reports failure when WebGL is missing',
+                        applied === false,
+                        JSON.stringify(Paper.status())
+                    );
+                    check(
+                        'neither texture is published when it fails',
+                        getComputedStyle(root).getPropertyValue('--paper-grain').trim() === '' &&
+                            getComputedStyle(root).getPropertyValue('--gloss-sheen').trim() === ''
+                    );
+                    check(
+                        'the card keeps its gradients without the shader',
+                        /gradient/.test(getComputedStyle(face).backgroundImage),
+                        getComputedStyle(face).backgroundImage.slice(0, 48)
+                    );
+                    check(
+                        'the back keeps its pattern without the shader',
+                        /gradient/.test(getComputedStyle(back).backgroundImage),
+                        getComputedStyle(back).backgroundImage.slice(0, 48)
+                    );
+
+                    // Put it back so the final state matches a normal load.
+                    Paper.reset();
+                    check('the shader recovers afterwards', Paper.apply(root, {}) === true);
+
+                    // The reflection is driven by the card's pose, never the
+                    // pointer. Wait for the opening deal to finish and for the
+                    // tracker to settle before reading the resting position.
+                    var slot = byId('computer-slot');
+                    var spotOf = function () {
+                        return (
+                            slot.style.getPropertyValue('--gloss-x') +
+                            ' , ' +
+                            slot.style.getPropertyValue('--gloss-y')
+                        );
+                    };
+                    var pair = function (value) {
+                        var parts = String(value).split(',');
+                        return { x: parseFloat(parts[0]), y: parseFloat(parts[1]) };
+                    };
+                    // The tracker writes the reflection back out of a transform it
+                    // read from the computed style, so "back at rest" can land a
+                    // fraction of a percent off the value it started from. What
+                    // matters is where the reflection sits, not the text it was
+                    // serialised as — a real swing is several percent away.
+                    var gap = function (from, to) {
+                        var a = pair(from);
+                        var b = pair(to);
+                        return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+                    };
+
+                    window.setTimeout(function () {
+                        var resting = spotOf();
+                        check('a resting reflection is placed on the card', /%/.test(resting), resting);
+                        check(
+                            'the card has depth to lean into',
+                            getComputedStyle(slot).perspective !== 'none',
+                            getComputedStyle(slot).perspective
+                        );
+
+                        // The cursor leans the card. The reflection must not follow
+                        // the pointer; it follows the *pose the pointer produced*,
+                        // which is why it swings the other way.
+                        var card = byId('computer-card');
+                        var slotRect = slot.getBoundingClientRect();
+                        slot.dispatchEvent(
+                            new PointerEvent('pointermove', {
+                                clientX: slotRect.left + slotRect.width * 0.9,
+                                clientY: slotRect.top + slotRect.height * 0.85,
+                                bubbles: true
+                            })
+                        );
+                        check(
+                            'the lean is expressed as a tilt',
+                            parseFloat(slot.style.getPropertyValue('--tilt-y')) > 5 &&
+                                parseFloat(slot.style.getPropertyValue('--tilt-x')) < -5,
+                            slot.style.getPropertyValue('--tilt-y') +
+                                ' / ' +
+                                slot.style.getPropertyValue('--tilt-x')
+                        );
+                        check(
+                            'the shadow is thrown away from the lean',
+                            parseFloat(slot.style.getPropertyValue('--shadow-x')) < 0,
+                            slot.style.getPropertyValue('--shadow-x')
+                        );
+
+                        // The transform is transitioned and the reflection is sampled
+                        // on the next frame, so let both land before reading them.
+                        window.setTimeout(function () {
+                            check(
+                                'the cursor leans the card into 3D',
+                                getComputedStyle(card).transform.indexOf('matrix3d') === 0,
+                                getComputedStyle(card).transform.slice(0, 42)
+                            );
+                            var leaning = spotOf();
+                            check(
+                                'the reflection swings against the lean',
+                                parseFloat(leaning) < parseFloat(resting),
+                                resting + ' -> ' + leaning
+                            );
+
+                            // And it eases back to rest when the cursor leaves.
+                            slot.dispatchEvent(new PointerEvent('pointerleave', { bubbles: false }));
+                            window.setTimeout(function () {
+                                check(
+                                    'the card eases back when the cursor leaves',
+                                    !slot.classList.contains('is-tilting') && gap(spotOf(), resting) < 1,
+                                    resting + ' -> ' + spotOf()
+                                );
+
+                                // A deal carries the card under the lamp, so the
+                                // reflection has to travel with it too.
+                                byId('restart-btn').click();
+                                window.setTimeout(function () {
+                                    var during = spotOf();
+                                    check(
+                                        'the reflection travels while the card is dealing',
+                                        gap(during, resting) > 1,
+                                        resting + ' -> ' + during
+                                    );
+                                    window.setTimeout(function () {
+                                        check(
+                                            'the reflection settles once the card does',
+                                            gap(spotOf(), resting) < 1,
+                                            resting + ' -> ' + spotOf()
+                                        );
+                                        report();
+                                    }, 2400);
+                                }, 220);
+                            }, 800);
+                        }, 320);
+                    }, 2600);
+                }
+
+                /* -------------------------------------------------------- lowerWins */
+
+                // A stat can be won by the lowest value. The card marks it, and
+                // the round must follow the deck's rule, not the raw numbers.
+                function lowerWins() {
+                    var theme = {
+                        id: 'lower-browser',
+                        theme: 'Lower Browser',
+                        attributes: ['price', 'speed'],
+                        labels: { price: 'Price', speed: 'Speed' },
+                        units: { price: '$', speed: 'km/h' },
+                        directions: { price: 'lower' },
+                        cards: [
+                            { name: 'Cheap', attributes: { price: 10, speed: 50 } },
+                            { name: 'Fast', attributes: { price: 40, speed: 120 } }
+                        ]
+                    };
+
+                    window.TrunfoUI.startGame(theme);
+                    var state = window.TrunfoUI.getState();
+
+                    check(
+                        'the deck stores its comparison rule',
+                        state.directions.price === 'lower',
+                        state.directions.price
+                    );
+                    check(
+                        'an unlisted stat stays higher-wins',
+                        state.directions.speed === 'higher',
+                        state.directions.speed
+                    );
+
+                    var lowerRow = document.querySelector('#player-card button.attr[data-category="price"]');
+                    var upperRow = document.querySelector('#player-card button.attr[data-category="speed"]');
+                    check(
+                        'the lower-wins stat is marked on the card',
+                        !!lowerRow && !!lowerRow.querySelector('.attr__rule')
+                    );
+                    check(
+                        'the higher-wins stat carries no marker',
+                        !!upperRow && !upperRow.querySelector('.attr__rule')
+                    );
+                    check(
+                        'the accessible name explains the rule',
+                        !!lowerRow && /lowest value wins/i.test(lowerRow.getAttribute('aria-label')),
+                        lowerRow ? lowerRow.getAttribute('aria-label') : 'no row'
+                    );
+
+                    // With two distinct prices there is always a winner, whichever
+                    // way the deal fell — and it must be the cheaper car.
+                    var playerCard = Engine.getTopCard(state.playerHand);
+                    var computerCard = Engine.getTopCard(state.computerHand);
+                    var expected =
+                        playerCard.attributes.price < computerCard.attributes.price ? 'player' : 'computer';
+
+                    window.TrunfoUI.onCategory('price');
+                    var result = window.TrunfoUI.getState().lastResult;
+                    check(
+                        'the round follows the lower-wins rule',
+                        result.outcome === expected,
+                        result.playerValue + ' vs ' + result.computerValue + ' -> ' + result.outcome
+                    );
+                    check('the rule is on the round result', result.direction === 'lower', result.direction);
+                    check(
+                        'the message names the rule',
+                        /lowest wins/.test(byId('message').textContent),
+                        byId('message').textContent
+                    );
+
+                    report();
+                }
+
+                /* -------------------------------------------------------------- flip */
+
+                // Regression: the flip keyframes end on an identity transform, but
+                // `fill: both` leaves it applied. `perspective()` puts the element
+                // in a 3D rendering context, and an element in a 3D rendering
+                // context cannot blend with its backdrop — so a flip used to turn
+                // the gloss overlays into flat paint and wash the back out to a
+                // featureless gradient after the first turn.
+                function flip() {
+                    window.TrunfoUI.startGame();
+
+                    var slot = byId('computer-slot');
+                    var card = byId('computer-card');
+                    var attempts = 0;
+
+                    function layersIn3d() {
+                        var stuck = [];
+                        [card, card.querySelector('.back'), card.querySelector('.face')].forEach(
+                            function (node) {
+                                if (!node) return;
+                                var transform = getComputedStyle(node).transform;
+                                if (transform.indexOf('matrix3d') === 0) stuck.push(node.className);
+                            }
+                        );
+                        return stuck;
+                    }
+
+                    window.setTimeout(function playRound() {
+                        var button = document.querySelector('#player-card button.attr:not(:disabled)');
+                        if (button && attempts === 0) button.click();
+                        attempts += 1;
+
+                        // Settle on the card being face-DOWN: that is when the gloss
+                        // layers exist, and the `.card--back` rule is the one that
+                        // decides whether they sit in a 3D rendering context.
+                        var settled =
+                            !card.classList.contains('flip-in') &&
+                            !card.classList.contains('flip-out') &&
+                            card.classList.contains('card--back');
+
+                        if (!settled && attempts < 100) {
+                            window.setTimeout(playRound, 120);
+                            return;
+                        }
+
+                        check(
+                            'the flip class clears once its animation ends',
+                            settled,
+                            card.className + ' after ' + attempts + ' checks'
+                        );
+
+                        var back = card.querySelector('.back');
+                        if (back) {
+                            check(
+                                'the back keeps no lingering 3D transform',
+                                getComputedStyle(back).transform === 'none',
+                                getComputedStyle(back).transform.slice(0, 48)
+                            );
+                        }
+
+                        var stuck = layersIn3d();
+                        check(
+                            'no card layer is left in a 3D rendering context',
+                            stuck.length === 0,
+                            stuck.join(' | ')
+                        );
+
+                        if (back) {
+                            check(
+                                'the gloss overlays still blend after a flip',
+                                getComputedStyle(back, '::after').mixBlendMode === 'screen' &&
+                                    getComputedStyle(back, '::before').mixBlendMode === 'screen',
+                                getComputedStyle(back, '::after').mixBlendMode
+                            );
+                        }
+
+                        // `mix-blend-mode` keeps computing to `screen` even when it
+                        // is not being applied, so the blend mode proves nothing on
+                        // its own. What decides it is whether the layers sit in a 3D
+                        // rendering context: `perspective` on the slot is fine, but a
+                        // card with `preserve-3d` extends that context over the gloss,
+                        // and there the overlays lose their backdrop and paint at full
+                        // strength. Frozen mid-flip at a fixed transform, that is a
+                        // mean luminance of 94 instead of 80 — a milky wash.
+                        check(
+                            'the slot may carry perspective',
+                            getComputedStyle(slot).perspective !== 'none',
+                            getComputedStyle(slot).perspective
+                        );
+                        check(
+                            'but the card must not extend a 3D context over the gloss',
+                            getComputedStyle(card).transformStyle === 'flat',
+                            getComputedStyle(card).transformStyle
+                        );
+
+                        // The reflection must ease in once the card has landed,
+                        // rather than snapping on the moment the back is rendered.
+                        // Asserted as three deterministic facts rather than by
+                        // sampling the animation, which would race with the clock.
+                        if (back) {
+                            var before = getComputedStyle(back, '::before');
+                            var easing = before.transitionDuration;
+                            var resting = parseFloat(before.getPropertyValue('--gloss-rest'));
+
+                            check(
+                                'the reflection eases rather than snapping on',
+                                easing !== '0s' && parseFloat(easing) > 0.1,
+                                easing
+                            );
+                            check(
+                                'the reflection eases up to a visible strength',
+                                resting > 0.5,
+                                String(resting)
+                            );
+
+                            // And it is held back entirely while the card turns.
+                            card.className = 'card card--back flip-out';
+                            var held = getComputedStyle(back, '::before').opacity;
+                            check('the reflection is hidden while the card flips', held === '0', held);
+                        }
+
+                        report();
+                    }, 2600);
+                }
+
+                /* ------------------------------------------------------------ locale */
+
+                // The page ships in English and Brazilian Portuguese. `?lang=`
+                // pins a language for a link; the flag button switches at
+                // runtime. Both must translate the chrome, the deck content, the
+                // status line and the numbers, without re-dealing the match.
+                function localeCase() {
+                    var I18n = window.TrunfoI18n;
+                    var Deck = window.TrunfoDeck;
+                    var button = byId('locale');
+                    var portugueseFlag = '🇧🇷';
+                    var englishFlag = '🇬🇧';
+                    var fromQuery = location.search.indexOf('lang=pt-BR') !== -1;
+
+                    check('the i18n module loaded', typeof I18n === 'object');
+                    check('the language button is offered', button !== null);
+                    check(
+                        'the switch is a single flag button, not a picker',
+                        button && button.tagName === 'BUTTON' && button.options === undefined,
+                        button ? button.tagName : 'missing'
+                    );
+                    check(
+                        'the button carries the active language flag',
+                        button.textContent.trim() === (fromQuery ? portugueseFlag : englishFlag),
+                        button.textContent.trim()
+                    );
+                    check(
+                        'the button names the switch it performs',
+                        button.getAttribute('aria-label') ===
+                            (fromQuery ? 'Mudar o idioma para English' : 'Switch language to Português (BR)'),
+                        button.getAttribute('aria-label')
+                    );
+                    check(
+                        'the tooltip matches the accessible name',
+                        button.title === button.getAttribute('aria-label'),
+                        button.title
+                    );
+                    check(
+                        'the flag is the only thing a sighted user sees',
+                        button.textContent.trim() === button.querySelector('.flag').textContent.trim() &&
+                            button.querySelector('.flag').getAttribute('aria-hidden') === 'true',
+                        button.textContent
+                    );
+                    check(
+                        fromQuery ? '?lang=pt-BR switches the page on load' : 'the page starts in English',
+                        I18n.locale() === (fromQuery ? 'pt-BR' : 'en'),
+                        I18n.locale()
+                    );
+                    check(
+                        'the document language attribute follows the locale',
+                        document.documentElement.lang === I18n.locale(),
+                        document.documentElement.lang
+                    );
+
+                    window.TrunfoUI.configure({ fast: true, ai: 'random' });
+                    window.TrunfoUI.startGame();
+                    var state = window.TrunfoUI.getState();
+                    var card = state.playerHand[0];
+
+                    function labels() {
+                        return Array.prototype.map
+                            .call(document.querySelectorAll('#player-card .attr__label'), function (node) {
+                                return node.firstChild.textContent.trim();
+                            })
+                            .join(', ');
+                    }
+
+                    function expectPortuguese() {
+                        var pt = Deck.translator('awesome-animals', 'pt-BR');
+                        check(
+                            'the card banner names the deck in Portuguese',
+                            document.querySelector('#player-card .banner__text').textContent ===
+                                'Animais Incríveis',
+                            document.querySelector('#player-card .banner__text').textContent
+                        );
+                        check(
+                            'the stat labels come from the deck translation',
+                            labels() === 'Tamanho, Velocidade, Tempo de vida',
+                            labels()
+                        );
+                        check(
+                            'the card name is translated',
+                            document.querySelector('#player-card .face__name').textContent ===
+                                pt.name(card.name),
+                            document.querySelector('#player-card .face__name').textContent +
+                                ' vs ' +
+                                card.name
+                        );
+                        check(
+                            'the counter reads in Portuguese',
+                            /cartas?$/.test(
+                                document.querySelector('.side--player .counter').textContent.trim()
+                            ),
+                            document.querySelector('.side--player .counter').textContent
+                        );
+                        check(
+                            'the status line is translated',
+                            /Escolha uma categoria/.test(byId('message').textContent),
+                            byId('message').textContent
+                        );
+                        check(
+                            'the static chrome is translated',
+                            /Como jogar/.test(byId('rules-title').textContent) &&
+                                /Regras/.test(byId('rules-btn').textContent),
+                            byId('rules-title').textContent + ' / ' + byId('rules-btn').textContent
+                        );
+                        check(
+                            'the deck picker lists the built-in decks in Portuguese',
+                            /Animais Incríveis/.test(byId('deck-select').textContent) &&
+                                /Carros Elétricos 2026/.test(byId('deck-select').textContent),
+                            byId('deck-select').textContent
+                        );
+                        check(
+                            'the brand tag names the deck in Portuguese',
+                            byId('brand-tag').textContent === 'Animais Incríveis',
+                            byId('brand-tag').textContent
+                        );
+                        check(
+                            'numbers are formatted for the locale',
+                            I18n.number(1020) === '1.020',
+                            I18n.number(1020)
+                        );
+                    }
+
+                    if (fromQuery) {
+                        expectPortuguese();
+                        report();
+                        return;
+                    }
+
+                    check(
+                        'the English deck content is in place first',
+                        document.querySelector('#player-card .banner__text').textContent ===
+                            'Awesome Animals',
+                        document.querySelector('#player-card .banner__text').textContent
+                    );
+
+                    I18n.setLocale('pt-BR');
+                    expectPortuguese();
+                    check(
+                        'switching language does not re-deal the match',
+                        window.TrunfoUI.getState() === state &&
+                            window.TrunfoUI.getState().playerHand[0] === card,
+                        'the same state object'
+                    );
+
+                    var storageWorks = true;
+                    try {
+                        window.localStorage.setItem('trunfo.probe', '1');
+                        window.localStorage.removeItem('trunfo.probe');
+                    } catch (error) {
+                        storageWorks = false;
+                    }
+                    if (storageWorks) {
+                        check(
+                            'the choice is remembered for the next visit',
+                            window.localStorage.getItem('trunfo.locale.v1') === 'pt-BR',
+                            String(window.localStorage.getItem('trunfo.locale.v1'))
+                        );
+                    }
+
+                    // In Portuguese the same button offers English back.
+                    check(
+                        'the button names the other language after a switch',
+                        button.getAttribute('aria-label') === 'Mudar o idioma para English',
+                        button.getAttribute('aria-label')
+                    );
+                    check(
+                        'the flag still shows the language in use',
+                        button.textContent.trim() === portugueseFlag,
+                        button.textContent.trim()
+                    );
+
+                    // The button itself is the user's path to the same call.
+                    button.click();
+                    check('the button switches back', I18n.locale() === 'en', I18n.locale());
+                    check(
+                        'the flag follows the language back',
+                        button.textContent.trim() === englishFlag,
+                        button.textContent.trim()
+                    );
+                    check(
+                        'the deck content returns to English',
+                        document.querySelector('#player-card .banner__text').textContent ===
+                            'Awesome Animals',
+                        document.querySelector('#player-card .banner__text').textContent
+                    );
+                    check('the English stat labels are back', labels() === 'Size, Speed, Lifespan', labels());
+                    check(
+                        'the html lang attribute followed it back',
+                        document.documentElement.lang === 'en',
+                        document.documentElement.lang
+                    );
+                    check(
+                        'the match still stands',
+                        window.TrunfoUI.getState() === state,
+                        'the same state object'
+                    );
+                    check(
+                        'the button reflects the active language',
+                        button.getAttribute('aria-label') === 'Switch language to Português (BR)',
+                        button.getAttribute('aria-label')
+                    );
+
+                    report();
+                }
+
+                var CASES = {
+                    playthrough: playthrough,
+                    draw: draw,
+                    long: longGame,
+                    responsive: responsive,
+                    solo: solo,
+                    customDeck: customDeck,
+                    cars: cars,
+                    lowerWins: lowerWins,
+                    paper: paper,
+                    flip: flip,
+                    locale: localeCase,
+                    localeParam: localeCase
+                };
+
+                window.addEventListener('load', function () {
+                    (CASES[CASE] || playthrough)();
+                });
+            })();
+        </script>
+    </body>
+</html>

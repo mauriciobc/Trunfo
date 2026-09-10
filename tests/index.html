@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Trunfo — Engine tests</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 32px;
+                font-family: 'Segoe UI', system-ui, sans-serif;
+                background: #0b1524;
+                color: #eef2f9;
+            }
+            h1 {
+                margin: 0 0 4px;
+                font-size: 1.4rem;
+            }
+            p.sub {
+                margin: 0 0 20px;
+                color: #9aa8c0;
+            }
+            #summary {
+                font-size: 1.05rem;
+                margin-bottom: 16px;
+            }
+            .pass {
+                color: #3ddc97;
+            }
+            .fail {
+                color: #ff6b6b;
+            }
+            ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+                display: grid;
+                gap: 8px;
+            }
+            li {
+                padding: 10px 14px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                background: rgba(255, 255, 255, 0.04);
+                font-size: 0.9rem;
+            }
+            li.failed {
+                border-color: #ff6b6b;
+            }
+            code {
+                color: #ffd28a;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Trunfo — engine tests</h1>
+        <p class="sub">Pure-logic suite, independent of the DOM. Same file the Node runner uses.</p>
+        <p id="summary">Running…</p>
+        <ul id="results"></ul>
+
+        <script src="../src/js/deck.js"></script>
+        <script src="../src/js/engine.js"></script>
+        <script src="engine.test.js"></script>
+        <script>
+            (function () {
+                var originalLog = console.log;
+                var lines = [];
+                console.log = function (line) {
+                    lines.push(String(line));
+                    originalLog(line);
+                };
+
+                var suite = window.createEngineTests();
+                var outcome = suite.run();
+
+                console.log = originalLog;
+
+                var summary = document.getElementById('summary');
+                summary.innerHTML =
+                    'Passed <span class="pass">' +
+                    outcome.passed +
+                    '</span> · Failed <span class="' +
+                    (outcome.failed ? 'fail' : 'pass') +
+                    '">' +
+                    outcome.failed +
+                    '</span>';
+
+                var list = document.getElementById('results');
+                lines
+                    .filter(function (l) {
+                        return /^PASS|^FAIL/.test(l);
+                    })
+                    .forEach(function (line) {
+                        var item = document.createElement('li');
+                        var failed = line.indexOf('FAIL') === 0;
+                        if (failed) item.className = 'failed';
+                        item.textContent = line;
+                        list.appendChild(item);
+                    });
+            })();
+        </script>
+    </body>
+</html>

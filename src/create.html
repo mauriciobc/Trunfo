@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            data-i18n-content="app.createDescription"
+            content="Create your own Trunfo deck: name it, choose up to five stats, and fill in the cards."
+        />
+        <title data-i18n="app.createTitle">Trunfo — Deck creator</title>
+        <link rel="stylesheet" href="css/styles.css" />
+    </head>
+    <body>
+        <div class="app app--wide">
+            <header class="topbar">
+                <div class="brand">
+                    <span class="brand__mark" aria-hidden="true">T</span>
+                    <span class="brand__name">Trunfo</span>
+                    <span class="brand__tag" data-i18n="create.tag">Deck creator</span>
+                </div>
+                <div class="topbar__actions">
+                    <a id="back-to-game" class="btn btn--ghost" href="index.html" data-i18n="create.back"
+                        >Back to game</a
+                    >
+                    <button
+                        id="locale"
+                        class="btn btn--ghost btn--locale"
+                        type="button"
+                        data-locale-toggle
+                        aria-label="Switch language to Português (BR)"
+                    >
+                        <span class="flag" aria-hidden="true">🇬🇧</span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="builder">
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2><span data-i18n="create.step1">1 · Name the deck</span></h2>
+                    </div>
+                    <label class="field">
+                        <span class="field__label" data-i18n="create.deckName">Deck name</span>
+                        <input
+                            id="deck-name"
+                            class="input"
+                            type="text"
+                            maxlength="40"
+                            placeholder="e.g. Dinosaurs"
+                            data-i18n-placeholder="create.deckNamePlaceholder"
+                            autocomplete="off"
+                        />
+                    </label>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2>
+                            <span data-i18n="create.step2">2 · Stats</span>
+                            <span class="panel__count" id="stat-count">1 / 5</span>
+                        </h2>
+                        <button id="add-stat" class="btn btn--ghost" type="button" data-i18n="create.addStat">
+                            Add stat
+                        </button>
+                    </div>
+                    <p class="hint" data-i18n="create.statsHint">
+                        Each card compares these. Choose whether the highest or the lowest value wins — a
+                        0–100 time, a price or a weight means the lowest wins. The first stat is what the
+                        computer plays when it wins a round.
+                    </p>
+                    <div id="stats" class="stats"></div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2>
+                            <span data-i18n="create.step3">3 · Cards</span>
+                            <span class="panel__count" id="card-count">0</span>
+                        </h2>
+                        <button id="add-card" class="btn btn--ghost" type="button" data-i18n="create.addCard">
+                            Add card
+                        </button>
+                    </div>
+                    <p class="hint" data-i18n="create.cardsHint">
+                        Every card needs a name and a number for each stat. An icon is optional — paste an
+                        emoji.
+                    </p>
+                    <div class="table-wrap">
+                        <table id="cards" class="cards-table"></table>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2><span data-i18n="create.step4">4 · Save</span></h2>
+                    </div>
+                    <div id="errors" class="errors" role="alert" hidden></div>
+                    <div class="actions">
+                        <button id="save" class="btn btn--primary" type="button" data-i18n="create.saveDeck">
+                            Save deck
+                        </button>
+                        <button
+                            id="template"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.template"
+                        >
+                            Start from the built-in deck
+                        </button>
+                        <button id="clear" class="btn btn--ghost" type="button" data-i18n="create.clear">
+                            Clear the form
+                        </button>
+                    </div>
+                    <p id="status" class="hint" role="status" aria-live="polite"></p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2><span data-i18n="create.stepSaved">Saved decks</span></h2>
+                    </div>
+                    <div class="actions">
+                        <label class="field field--inline">
+                            <span class="visually-hidden" data-i18n="create.savedDeckLabel">Saved deck</span>
+                            <select id="deck-list" class="select"></select>
+                        </label>
+                        <button id="load" class="btn btn--ghost" type="button" data-i18n="create.load">
+                            Load into the form
+                        </button>
+                        <button id="delete" class="btn btn--ghost" type="button" data-i18n="create.delete">
+                            Delete
+                        </button>
+                        <button
+                            id="export-deck"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.exportDeck"
+                        >
+                            Export to JSON
+                        </button>
+                    </div>
+                    <p class="hint" id="list-hint"></p>
+                </section>
+
+                <section class="panel">
+                    <div class="panel__head">
+                        <h2><span data-i18n="create.stepJson">Export / import JSON</span></h2>
+                    </div>
+                    <p class="hint" data-i18n="create.jsonHint">
+                        Paste one deck or an array of decks into the box, or import a .json file.
+                    </p>
+                    <label class="field">
+                        <span class="field__label" data-i18n="create.jsonLabel">Deck JSON</span>
+                        <textarea
+                            id="json"
+                            class="textarea"
+                            rows="10"
+                            spellcheck="false"
+                            placeholder='{"theme":"Dinosaurs","attributes":["length"],…}'
+                            data-i18n-placeholder="create.jsonPlaceholder"
+                        ></textarea>
+                    </label>
+                    <div class="actions">
+                        <button id="copy" class="btn btn--ghost" type="button" data-i18n="create.copy">
+                            Copy
+                        </button>
+                        <button
+                            id="download"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.download"
+                        >
+                            Download .json
+                        </button>
+                        <button
+                            id="import-text"
+                            class="btn btn--ghost"
+                            type="button"
+                            data-i18n="create.importText"
+                        >
+                            Import from the box
+                        </button>
+                        <label class="btn btn--ghost file-btn">
+                            <span data-i18n="create.importFile">Import a .json file</span>
+                            <input id="import-file" type="file" accept=".json,application/json" hidden />
+                        </label>
+                    </div>
+                    <p id="json-status" class="hint" role="status" aria-live="polite"></p>
+                </section>
+            </main>
+        </div>
+
+        <script src="js/i18n.js"></script>
+        <script src="js/deck.js"></script>
+        <script src="js/engine.js"></script>
+        <script src="js/decks.js"></script>
+        <script src="js/images.js"></script>
+        <script src="js/create.js"></script>
+    </body>
+</html>

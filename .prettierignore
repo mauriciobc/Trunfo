@@ -1,0 +1,14 @@
+# Generated files and build output
+dist/
+node_modules/
+.npm-cache/
+.tmp/
+tests/screenshots/
+
+# Temporary harness copies
+.tests-*.html
+tests/.*.html
+
+# tests/builder.html is generated from src/create.html by
+# tools/make-builder-harness.py, so it is not hand-formatted.
+tests/builder.html

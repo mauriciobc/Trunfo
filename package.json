@@ -1,32 +1,49 @@
 {
-  "name": "trunfo",
-  "version": "1.0.0",
-  "description": "A web-based single-player Top Trumps game",
-  "main": "src/js/game.js",
-  "scripts": {
-    "build": "node build.js",
-    "deploy": "npm run build && gh-pages -d dist"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/mauriciobc/Trunfo.git"
-  },
-  "keywords": [
-    "game",
-    "top-trumps",
-    "cards",
-    "javascript"
-  ],
-  "author": "",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/mauriciobc/Trunfo/issues"
-  },
-  "homepage": "https://mauriciobc.github.io/Trunfo",
-  "devDependencies": {
-    "clean-css": "^5.3.2",
-    "gh-pages": "^6.1.1",
-    "html-minifier-terser": "^7.2.0",
-    "terser": "^5.27.0"
-  }
-} 
+    "name": "trunfo",
+    "version": "1.0.0",
+    "description": "A web-based single-player Top Trumps game",
+    "main": "src/js/engine.js",
+    "scripts": {
+        "lint": "eslint .",
+        "typecheck": "tsc",
+        "format": "prettier --write \"src/**/*.{js,css,html}\" \"tests/**/*.{js,html}\" \"*.js\" \"*.json\" README.md TODO.md",
+        "format:check": "prettier --check \"src/**/*.{js,css,html}\" \"tests/**/*.{js,html}\" \"*.js\" \"*.json\" README.md TODO.md",
+        "test": "node tests/engine.test.js && node tests/decks.test.js && node tests/i18n.test.js",
+        "test:browser": "node tests/run-browser-test.js",
+        "test:browser:dist": "node tests/run-browser-test.js --dist",
+        "test:shots": "node tests/run-browser-test.js --shots",
+        "verify": "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build && npm run test:browser:dist",
+        "test:all": "npm run verify",
+        "build": "node build.js",
+        "deploy": "npm run build && gh-pages -d dist",
+        "measure:layout": "node tools/measure-layout.js",
+        "fetch:cars": "node tools/fetch-car-images.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/mauriciobc/Trunfo.git"
+    },
+    "keywords": [
+        "game",
+        "top-trumps",
+        "cards",
+        "javascript"
+    ],
+    "author": "",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/mauriciobc/Trunfo/issues"
+    },
+    "homepage": "https://mauriciobc.github.io/Trunfo",
+    "devDependencies": {
+        "@eslint/js": "^9.39.5",
+        "clean-css": "^5.3.2",
+        "eslint": "^9.39.4",
+        "gh-pages": "^6.1.1",
+        "globals": "^17.12.0",
+        "html-minifier-terser": "^7.2.0",
+        "prettier": "^3.9.6",
+        "terser": "^5.27.0",
+        "typescript": "^5.9.3"
+    }
+}

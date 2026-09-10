@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 
+# Temporary test harness copies written by tests/run-browser-test.js
+tests/.*-*.html
+tests/screenshots/
+
 # IDE and editor files
 .vscode/
 .idea/
@@ -28,3 +32,11 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local 
+# Local npm cache used when the default cache is not writable
+.npm-cache/
+
+# Scratch space for local probes
+.tmp/
+
+# Python virtualenv from the prototype (no longer used or tracked)
+/venv/
