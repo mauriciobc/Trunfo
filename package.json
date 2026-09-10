@@ -49,5 +49,8 @@
         "prettier": "^3.9.6",
         "terser": "^5.27.0",
         "typescript": "^5.9.3"
+    },
+    "overrides": {
+        "picomatch": "^2.3.2"
     }
 }
